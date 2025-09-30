@@ -5,13 +5,13 @@ import { useHedera } from './hooks/useHedera'
 import { initializeHederaClient } from './services/hedera/client'
 // Pages
 import Home from './pages/Home'
-// import Dashboard from './pages/Dashboard'
-// import Marketplace from '@pages/Marketplace'
-// import Identity from '@pages/Identity'
-// import AIEntities from '@pages/AIEntities'
-// import Entanglement from '@pages/Entanglement'
-// import Carbon from '@pages/Carbon'
-// import Portal from '@pages/Portal'
+import Dashboard from './pages/Dashboard'
+import Marketplace from './pages/Marketplace'
+import Identity from './pages/Identity'
+import AIEntities from './pages/AIEntities'
+import Entanglement from './pages/Entanglement'
+import Carbon from './pages/Carbon'
+import Portal from './pages/Portal'
 initializeHederaClient()
 function App() {
   const { isInitialized: isHederaInitialized } = useHedera();  // Track the hook’s state
@@ -47,13 +47,13 @@ function App() {
     <Layout>
       <Routes>
         <Route path="/" element={<Home />} />
-        {/* <Route path="/dashboard" element={<Dashboard />} /> */}
-        {/* <Route path="/marketplace" element={<Marketplace />} /> */}
-        {/* <Route path="/identity" element={<Identity />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/marketplace" element={<Marketplace />} />
+        <Route path="/identity" element={<Identity />} />
         <Route path="/ai-entities" element={<AIEntities />} />
         <Route path="/entanglement" element={<Entanglement />} />
         <Route path="/carbon" element={<Carbon />} />
-        <Route path="/portal" element={<Portal />} /> */}
+        <Route path="/portal" element={<Portal />} />
       </Routes>
     </Layout>
   )
