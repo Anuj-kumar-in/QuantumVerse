@@ -4,6 +4,7 @@ import Navigation from './Navigation'
 import clsx from 'clsx'
 import { useWallet } from '../../hooks/useWallet'
 import { useHedera } from '../../hooks/useHedera'
+import { WalletProvider } from '../../types/ethereum'
 import Button from './Button'
 import Modal from './Modal'
 import Loader from './Loader'
@@ -30,8 +31,21 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, [])
 
   const handleWalletConnect = async (provider: string) => {
-    await connect(provider as any)
-    setShowWalletModal(false)
+    let walletProvider: WalletProvider | null = null
+
+    switch (provider.toUpperCase()) {
+      case 'METAMASK':
+        walletProvider = WalletProvider.METAMASK
+        break
+      default:
+        console.error(`Unsupported wallet provider: ${provider}`)
+        return
+    }
+
+    if (walletProvider) {
+      await connect(walletProvider)
+      setShowWalletModal(false)
+    }
   }
 
   if (!state.isInitialized) {

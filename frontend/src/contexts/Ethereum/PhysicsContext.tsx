@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react'
 import {
   type PhysicsNFT,
@@ -7,9 +8,9 @@ import {
   PhysicsType,
   Rarity,
   ProposalStatus
-} from '../types/physics'
-import { getHTSService } from '../services/hedera/hts'
-import { getSmartContractsService } from '../services/hedera/smart-contracts'
+} from '../../types/physics'
+import { getHTSService } from '../../services/ethereum/token'
+import { getSmartContractsService } from '../../services/ethereum/contracts'
 import { useAccount } from './HederaContext'
 
 interface PhysicsContextState {
@@ -20,8 +21,8 @@ interface PhysicsContextState {
   isMinting: boolean
   isTrading: boolean
   isVoting: boolean
-  physicsTokenId: string | null
-  nftCollectionId: string | null
+  physicsTokenAddress: string | null
+  nftCollectionAddress: string | null
   error: string | null
 }
 
@@ -39,7 +40,7 @@ type PhysicsAction =
   | { type: 'VOTE_START' }
   | { type: 'VOTE_SUCCESS'; payload: PhysicsModification }
   | { type: 'VOTE_ERROR'; payload: string }
-  | { type: 'SET_TOKEN_IDS'; payload: { physicsTokenId: string; nftCollectionId: string } }
+  | { type: 'SET_CONTRACT_ADDRESSES'; payload: { physicsTokenAddress: string; nftCollectionAddress: string } }
   | { type: 'CLEAR_ERROR' }
 
 const initialState: PhysicsContextState = {
@@ -50,8 +51,8 @@ const initialState: PhysicsContextState = {
   isMinting: false,
   isTrading: false,
   isVoting: false,
-  physicsTokenId: null,
-  nftCollectionId: null,
+  physicsTokenAddress: null,
+  nftCollectionAddress: null,
   error: null
 }
 
@@ -153,11 +154,11 @@ function physicsReducer(state: PhysicsContextState, action: PhysicsAction): Phys
         error: action.payload
       }
 
-    case 'SET_TOKEN_IDS':
+    case 'SET_CONTRACT_ADDRESSES':
       return {
         ...state,
-        physicsTokenId: action.payload.physicsTokenId,
-        nftCollectionId: action.payload.nftCollectionId
+        physicsTokenAddress: action.payload.physicsTokenAddress,
+        nftCollectionAddress: action.payload.nftCollectionAddress
       }
 
     case 'CLEAR_ERROR':
@@ -174,7 +175,7 @@ function physicsReducer(state: PhysicsContextState, action: PhysicsAction): Phys
 interface PhysicsContextType {
   state: PhysicsContextState
   mintPhysicsNFT: (physicsType: PhysicsType, rarity: Rarity, properties: any) => Promise<PhysicsNFT | null>
-  tradeNFT: (nftId: string, toAccountId: string, price: string) => Promise<boolean>
+  tradeNFT: (nftId: string, toAddress: string, price: string) => Promise<boolean>
   proposePhysicsChange: (lawId: string, newValue: number, description: string) => Promise<boolean>
   voteOnProposal: (proposalId: string, vote: boolean, stakingAmount: number) => Promise<boolean>
   loadMarketplace: () => Promise<void>
@@ -199,12 +200,15 @@ export function PhysicsProvider({ children }: PhysicsProviderProps) {
 
   const initializePhysicsSystem = async () => {
     try {
-      // Set token IDs from environment
-      const physicsTokenId = import.meta.env.VITE_PHYSICS_TOKEN_ID
-      const nftCollectionId = import.meta.env.VITE_PHYSICS_NFT_COLLECTION_ID
+      // Set contract addresses from environment
+      const physicsTokenAddress = import.meta.env.VITE_PHYSICS_TOKEN_ADDRESS
+      const nftCollectionAddress = import.meta.env.VITE_PHYSICS_NFT_COLLECTION_ADDRESS
 
-      if (physicsTokenId && nftCollectionId) {
-        dispatch({ type: 'SET_TOKEN_IDS', payload: { physicsTokenId, nftCollectionId } })
+      if (physicsTokenAddress && nftCollectionAddress) {
+        dispatch({ 
+          type: 'SET_CONTRACT_ADDRESSES', 
+          payload: { physicsTokenAddress, nftCollectionAddress } 
+        })
       }
 
       // Load initial physics laws
@@ -227,7 +231,7 @@ export function PhysicsProvider({ children }: PhysicsProviderProps) {
     rarity: Rarity,
     properties: any
   ): Promise<PhysicsNFT | null> => {
-    if (!account || !state.nftCollectionId) {
+    if (!account || !state.nftCollectionAddress) {
       dispatch({ type: 'MINT_NFT_ERROR', payload: 'Services not initialized' })
       return null
     }
@@ -241,17 +245,17 @@ export function PhysicsProvider({ children }: PhysicsProviderProps) {
 
       // Upload metadata to IPFS (simplified)
       const ipfsHash = await uploadToIPFS(metadata)
+      const tokenURI = `https://ipfs.io/ipfs/${ipfsHash}`
 
-      // Mint NFT
-      const serials = await getHTSService().mintPhysicsNFT(
-        state.nftCollectionId,
-        [ipfsHash],
-        // Note: In real implementation, you'd need the supply key
-        {} as any
+      // Mint NFT using ERC721 standard
+      const tokenIds = await getHTSService().mintPhysicsNFT(
+        state.nftCollectionAddress,
+        account.accountId, // to address
+        [tokenURI]
       )
 
       const nft: PhysicsNFT = {
-        tokenId: `${state.nftCollectionId}/${serials[0]}`,
+        tokenId: `${state.nftCollectionAddress}/${tokenIds[0]}`,
         name,
         description: `A ${rarity} ${physicsType} NFT that controls physical laws in QuantumVerse`,
         physicsType,
@@ -267,7 +271,7 @@ export function PhysicsProvider({ children }: PhysicsProviderProps) {
         price: calculateNFTPrice(rarity, physicsType),
         owner: account.accountId,
         metadata: {
-          image: `https://quantumverse.hedera.com/nft/${physicsType.toLowerCase()}.png`,
+          image: `https://quantumverse.ethereum.com/nft/${physicsType.toLowerCase()}.png`,
           attributes: [],
           creator: 'QuantumVerse',
           createdAt: new Date(),
@@ -285,7 +289,7 @@ export function PhysicsProvider({ children }: PhysicsProviderProps) {
     }
   }
 
-  const tradeNFT = async (nftId: string, toAccountId: string, price: string): Promise<boolean> => {
+  const tradeNFT = async (nftId: string, toAddress: string, price: string): Promise<boolean> => {
     if (!account) {
       dispatch({ type: 'TRADE_NFT_ERROR', payload: 'No account connected' })
       return false
@@ -294,19 +298,19 @@ export function PhysicsProvider({ children }: PhysicsProviderProps) {
     dispatch({ type: 'TRADE_NFT_START' })
 
     try {
-      const [tokenId, serial] = nftId.split('/')
+      const [contractAddress, tokenIdStr] = nftId.split('/')
+      const tokenId = parseInt(tokenIdStr)
 
-      // Transfer NFT (simplified - in practice you'd handle payment too)
+      // Transfer NFT using ERC721 standard (simplified - in practice you'd handle payment too)
       const success = await getHTSService().transferNFT(
+        contractAddress,
         tokenId,
-        parseInt(serial),
         account.accountId,
-        toAccountId,
-        {} as any // Account key needed
+        toAddress
       )
 
       if (success) {
-        dispatch({ type: 'TRADE_NFT_SUCCESS', payload: { nftId, newOwner: toAccountId } })
+        dispatch({ type: 'TRADE_NFT_SUCCESS', payload: { nftId, newOwner: toAddress } })
         return true
       }
 
@@ -324,13 +328,13 @@ export function PhysicsProvider({ children }: PhysicsProviderProps) {
     description: string
   ): Promise<boolean> => {
     try {
-      const contractId = import.meta.env.VITE_PHYSICS_GOVERNANCE_CONTRACT
-      if (!contractId) {
+      const contractAddress = import.meta.env.VITE_PHYSICS_GOVERNANCE_CONTRACT_ADDRESS
+      if (!contractAddress) {
         throw new Error('Physics governance contract not configured')
       }
 
       await getSmartContractsService().proposePhysicsChange(
-        contractId,
+        contractAddress,
         lawId,
         newValue,
         description
@@ -348,7 +352,7 @@ export function PhysicsProvider({ children }: PhysicsProviderProps) {
     vote: boolean,
     stakingAmount: number
   ): Promise<boolean> => {
-    if (!state.physicsTokenId) {
+    if (!state.physicsTokenAddress) {
       dispatch({ type: 'VOTE_ERROR', payload: 'Physics token not available' })
       return false
     }
@@ -356,13 +360,13 @@ export function PhysicsProvider({ children }: PhysicsProviderProps) {
     dispatch({ type: 'VOTE_START' })
 
     try {
-      const contractId = import.meta.env.VITE_PHYSICS_GOVERNANCE_CONTRACT
-      if (!contractId) {
+      const contractAddress = import.meta.env.VITE_PHYSICS_GOVERNANCE_CONTRACT_ADDRESS
+      if (!contractAddress) {
         throw new Error('Physics governance contract not configured')
       }
 
       await getSmartContractsService().voteOnProposal(
-        contractId,
+        contractAddress,
         proposalId,
         vote,
         stakingAmount
@@ -390,10 +394,10 @@ export function PhysicsProvider({ children }: PhysicsProviderProps) {
 
   const loadMarketplace = async (): Promise<void> => {
     try {
-      // In a real implementation, this would fetch from Mirror Node API
+      // In a real implementation, this would fetch from blockchain events or subgraph
       const mockNFTs: PhysicsNFT[] = [
         {
-          tokenId: '0.0.123456/1',
+          tokenId: '0x1234567890123456789012345678901234567890/1',
           name: 'Epic Gravity Manipulator',
           description: 'Controls gravity in a localized area',
           physicsType: PhysicsType.GRAVITY,
@@ -406,10 +410,10 @@ export function PhysicsProvider({ children }: PhysicsProviderProps) {
             compatibility: [PhysicsType.SPACE, PhysicsType.MATTER]
           },
           rarity: Rarity.EPIC,
-          price: '150',
-          owner: '0.0.654321',
+          price: '0.15', // ETH
+          owner: '0x742d35Cc6634C0532925a3b8D6EbDc3f6DbC0C1b',
           metadata: {
-            image: 'https://quantumverse.hedera.com/nft/gravity.png',
+            image: 'https://quantumverse.ethereum.com/nft/gravity.png',
             attributes: [],
             creator: 'QuantumVerse',
             createdAt: new Date(),
@@ -454,7 +458,7 @@ export function usePhysics(): PhysicsContextType {
   return context
 }
 
-// Utility functions
+// Utility functions (adapted for Ethereum)
 async function loadPhysicsLaws(): Promise<PhysicsLaw[]> {
   return [
     {
@@ -525,7 +529,7 @@ async function loadPhysicsEngine(): Promise<PhysicsEngine> {
 }
 
 function calculateNFTPrice(rarity: Rarity, physicsType: PhysicsType): string {
-  const basePrice = 50
+  const basePrice = 0.05 // ETH
   const rarityMultiplier = {
     [Rarity.COMMON]: 1,
     [Rarity.UNCOMMON]: 2,
@@ -545,7 +549,7 @@ function calculateNFTPrice(rarity: Rarity, physicsType: PhysicsType): string {
     [PhysicsType.SPACE]: 1.8
   }
 
-  return (basePrice * rarityMultiplier[rarity] * typeMultiplier[physicsType]).toString()
+  return (basePrice * rarityMultiplier[rarity] * typeMultiplier[physicsType]).toFixed(4)
 }
 
 function generatePhysicsEffects(physicsType: PhysicsType, properties: any): any[] {
@@ -555,5 +559,6 @@ function generatePhysicsEffects(physicsType: PhysicsType, properties: any): any[
 
 async function uploadToIPFS(metadata: string): Promise<string> {
   // This would upload to IPFS in a real implementation
+  // Could use services like Pinata, NFT.Storage, or Web3.Storage
   return `QmMockIPFS${Date.now()}`
 }

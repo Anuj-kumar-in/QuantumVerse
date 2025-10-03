@@ -2,7 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import { Layout } from './components/common/Layout'
 import React, { useState, useEffect } from 'react';
 import { useHedera } from './hooks/useHedera'
-import { initializeHederaClient } from './services/hedera/client'
+import { initializeHederaClient } from './services/ethereum/client'
 // Pages
 import Home from './pages/Home'
 import Dashboard from './pages/Dashboard'

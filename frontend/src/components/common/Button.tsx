@@ -32,7 +32,7 @@ export const Button: React.FC<ButtonProps> = ({
     secondary: 'bg-gray-700 hover:bg-gray-600 text-white focus:ring-gray-500',
     quantum: 'bg-gradient-to-r from-quantum-600 to-physics-600 hover:from-quantum-700 hover:to-physics-700 text-white focus:ring-quantum-500',
     physics: 'bg-gradient-to-r from-physics-600 to-purple-600 hover:from-physics-700 hover:to-purple-700 text-white focus:ring-physics-500',
-    carbon: 'bg-gradient-to-r from-carbon-600 to-green-600 hover:from-carbon-700 hover:to-green-700 text-white focus:ring-carbon-500',
+    carbon: 'bg-gradient-to-r from-black-800 to-green-600 hover:from-carbon-700 hover:to-green-700 text-white focus:ring-carbon-500',
     ai: 'bg-gradient-to-r from-ai-600 to-yellow-600 hover:from-ai-700 hover:to-yellow-700 text-white focus:ring-ai-500',
     danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500'
   }
@@ -49,7 +49,7 @@ export const Button: React.FC<ButtonProps> = ({
 
   return (
     <motion.button
-      whileHover={{ scale: 1.02 }}
+      whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.98 }}
       className={clsx(
         baseClasses,
