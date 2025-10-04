@@ -1,0 +1,91 @@
+const createEntity = useCallback(async (type: EntityType, name: string): Promise<AIEntity | null> => {
+  if (!blockchainService.isConnected()) {
+    setState(prev => ({ ...prev, error: 'Please connect your wallet first' }))
+    return null
+  }
+
+  setState(prev => ({ ...prev, isCreating: true, error: null }))
+
+  try {
+    // Get contracts
+    const aiContract = await blockchainService.getContract('AIEntityContract')
+    const quantumContract = await blockchainService.getContract('QuantumToken')
+    
+    if (!aiContract || !quantumContract) {
+      throw new Error('Failed to connect to contracts')
+    }
+
+    // Get user address
+    const userAddress = blockchainService.accountIdToAddress(blockchainService.getAccount()!)
+    
+    // Check QUANTUM token balance
+    const balance = await quantumContract.balanceOf(userAddress)
+    console.log('QUANTUM token balance:', ethers.formatUnits(balance, 8))
+    
+    // Try to estimate a reasonable amount (e.g., 100 QUANTUM tokens)
+    const estimatedCost = ethers.parseUnits("100", 8) // 100 QUANTUM tokens
+    
+    if (balance < estimatedCost) {
+      throw new Error(`Insufficient QUANTUM tokens. You have ${ethers.formatUnits(balance, 8)} QUANTUM, but may need around 100 QUANTUM to create an AI entity.`)
+    }
+
+    // Check and approve token spending
+    const aiContractAddress = await aiContract.getAddress()
+    const allowance = await quantumContract.allowance(userAddress, aiContractAddress)
+    console.log('Current allowance:', ethers.formatUnits(allowance, 8))
+    
+    if (allowance < estimatedCost) {
+      console.log('Approving QUANTUM token spending...')
+      const approveTx = await quantumContract.approve(aiContractAddress, estimatedCost)
+      const approveReceipt = await approveTx.wait()
+      if (approveReceipt.status !== 1) {
+        throw new Error('Token approval failed')
+      }
+      console.log('Token spending approved')
+    }
+
+    // Convert EntityType enum to number
+    const entityTypeNumber = Object.values(EntityType).indexOf(type)
+
+    // Create entity
+    const tx = await aiContract.createAIEntity(
+      name,
+      entityTypeNumber,
+      "Default personality",
+      "General knowledge"
+    )
+    
+    console.log('AI entity creation sent:', tx.hash)
+
+    const receipt = await tx.wait()
+    if (receipt.status !== 1) {
+      throw new Error('Transaction failed')
+    }
+    console.log('AI entity created!')
+
+    // Load updated data
+    await loadAIData()
+
+    setState(prev => ({ ...prev, isCreating: false }))
+    
+    // Find and return the newly created entity
+    const newEntity = state.userEntities.find(e => e.name === name)
+    return newEntity || null
+
+  } catch (error) {
+    console.error('Failed to create AI entity:', error)
+    
+    // Provide more helpful error messages
+    let errorMessage = (error as Error).message
+    if (errorMessage.includes('execution reverted')) {
+      errorMessage = 'Transaction failed - you might need QUANTUM tokens or there may be other requirements. Please check your token balance.'
+    }
+    
+    setState(prev => ({
+      ...prev,
+      isCreating: false,
+      error: errorMessage
+    }))
+    return null
+  }
+}, [loadAIData, state.userEntities])

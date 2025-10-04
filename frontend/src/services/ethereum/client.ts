@@ -2,12 +2,17 @@
 import { ethers } from 'ethers'
 import { type EthereumConfig, type EthereumAccount, EthereumNetwork } from '../../types/ethereum'
 
+//Initializing of client and access of their data or closing connection to blockchain
+
+
+
 // Load environment variables
 const PRIVATE_KEY = import.meta.env.VITE_ETHEREUM_PRIVATE_KEY
 const NETWORK = import.meta.env.VITE_ETHEREUM_NETWORK || 'sepolia'
 const RPC_URL = import.meta.env.VITE_RPC_URL || 'https://sepolia.infura.io/v3/YOUR_PROJECT_ID'
 const INFURA_PROJECT_ID = import.meta.env.VITE_INFURA_PROJECT_ID
 
+//SET CONFIG FOR LOCAL FILE
 const defaultConfig: EthereumConfig = {
   privateKey: PRIVATE_KEY,
   network: NETWORK as EthereumNetwork,
@@ -15,7 +20,8 @@ const defaultConfig: EthereumConfig = {
   infuraProjectId: INFURA_PROJECT_ID
 }
 
-export class HederaClient { // Keep name for frontend compatibility
+//Blockchain client from ethers
+export class HederaClient { 
   private provider: ethers.Provider | null = null
   private signer: ethers.Signer | null = null
   private config: EthereumConfig
@@ -25,9 +31,9 @@ export class HederaClient { // Keep name for frontend compatibility
     this.initializeClient()
   }
 
+//Initializing Client on provided network
   private initializeClient(): void {
     try {
-      // Initialize provider based on network
       switch (this.config.network) {
         case EthereumNetwork.MAINNET:
           this.provider = new ethers.InfuraProvider('mainnet', this.config.infuraProjectId)

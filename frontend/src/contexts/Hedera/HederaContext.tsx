@@ -155,6 +155,7 @@ export function HederaProvider({ children }: HederaProviderProps) {
   }, [])
 
   const initializeHedera = async () => {
+    console.log('🔄 Starting Hedera initialization...')
     dispatch({ type: 'INITIALIZE_START' })
 
     try {
@@ -165,13 +166,17 @@ export function HederaProvider({ children }: HederaProviderProps) {
         mirrorNodeUrl: import.meta.env.VITE_MIRROR_NODE_URL || 'https://testnet.mirrornode.hedera.com',
         jsonRpcUrl: import.meta.env.VITE_JSON_RPC_URL || 'https://testnet.hashio.io/api'
       }
+      console.log('📋 Hedera config:', config)
 
       // Initialize Hedera client
+      console.log('🔧 Initializing Hedera client...')
       initializeHederaClient(config)
 
       // Validate connection
+      console.log('🔍 Validating Hedera connection...')
       const client = getHederaClient()
       const isValid = await client.validateConnection()
+      console.log('🔍 Connection validation result:', isValid)
 
       if (!isValid) {
         throw new Error('Failed to establish connection to Hedera network')

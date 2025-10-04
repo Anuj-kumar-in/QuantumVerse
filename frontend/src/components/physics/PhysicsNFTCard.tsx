@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import {type PhysicsNFT, PhysicsType, Rarity } from '../../types/physics'
+import { PhysicsType, Rarity } from '../../hooks/usePhysics'
+import type { PhysicsNFT } from '../../hooks/usePhysics'
 import { usePhysics } from '../../hooks/usePhysics'
 import Card from '../../components/common/Card'
 import Button from '../../components/common/Button'
@@ -20,11 +21,12 @@ export const PhysicsNFTCard: React.FC<PhysicsNFTCardProps> = ({
   isOwner,
   compact = false
 }) => {
-  const { tradeNFT } = usePhysics()
+  const { activatePhysics, deactivatePhysics, state } = usePhysics()
   const [showTradeModal, setShowTradeModal] = useState(false)
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [tradeForm, setTradeForm] = useState({
     toAccountId: '',
-    price: nft.price
+    price: nft.price || '0'
   })
 
   const getPhysicsIcon = (type: PhysicsType) => {
@@ -64,14 +66,18 @@ export const PhysicsNFTCard: React.FC<PhysicsNFTCardProps> = ({
     }
   }
 
-  const handleTrade = async () => {
-    if (!tradeForm.toAccountId) return
-
-    const success = await tradeNFT(nft.tokenId, tradeForm.toAccountId, tradeForm.price)
-    if (success) {
-      setShowTradeModal(false)
-      setTradeForm({ toAccountId: '', price: nft.price })
+  const handleActivateToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (nft.isActive) {
+      await deactivatePhysics(nft.id)
+    } else {
+      await activatePhysics(nft.id)
     }
+  }
+
+  const handleDetailsClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setShowDetailsModal(true)
   }
 
   return (
@@ -88,11 +94,17 @@ export const PhysicsNFTCard: React.FC<PhysicsNFTCardProps> = ({
             'relative overflow-hidden transition-all duration-300',
             getRarityColor(nft.rarity),
             getRarityGlow(nft.rarity),
-            compact ? 'p-4' : 'p-6'
+            compact ? 'p-4' : 'p-6',
+            nft.isActive && 'ring-2 ring-physics-400/50'
           )}
         >
           {/* Rarity Indicator */}
           <div className="absolute top-0 right-0 w-0 h-0 border-l-[40px] border-l-transparent border-t-[40px] border-t-current opacity-20" />
+          
+          {/* Active Status Indicator */}
+          {nft.isActive && (
+            <div className="absolute top-2 left-2 w-3 h-3 bg-green-400 rounded-full animate-pulse" />
+          )}
 
           {/* NFT Image/Icon */}
           <div className="relative mb-4">
@@ -146,7 +158,7 @@ export const PhysicsNFTCard: React.FC<PhysicsNFTCardProps> = ({
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Magnitude:</span>
-                  <span className="text-physics-400">{nft.properties.magnitude}x</span>
+                  <span className="text-physics-400">{(nft.properties.magnitude / 100).toFixed(2)}x</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Duration:</span>
@@ -156,28 +168,66 @@ export const PhysicsNFTCard: React.FC<PhysicsNFTCardProps> = ({
                   <span className="text-gray-400">Range:</span>
                   <span className="text-physics-400">{nft.properties.range}m</span>
                 </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Energy:</span>
+                  <span className="text-physics-400">{nft.properties.energyCost}</span>
+                </div>
               </div>
             )}
 
-            {/* Rarity Badge */}
+            {/* Compatibility */}
+            {!compact && nft.properties.compatibility.length > 0 && (
+              <div className="pt-2">
+                <p className="text-xs text-gray-400 mb-1">Compatible:</p>
+                <div className="flex flex-wrap gap-1">
+                  {nft.properties.compatibility.slice(0, 2).map((comp, index) => (
+                    <span
+                      key={index}
+                      className="px-1 py-0.5 text-xs bg-physics-500/20 text-physics-300 rounded"
+                    >
+                      {comp}
+                    </span>
+                  ))}
+                  {nft.properties.compatibility.length > 2 && (
+                    <span className="px-1 py-0.5 text-xs bg-gray-600 text-gray-300 rounded">
+                      +{nft.properties.compatibility.length - 2}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Rarity Badge and Price */}
             <div className="flex items-center justify-between">
-              <span className={clsx(
-                'px-2 py-1 rounded-full text-xs font-bold border',
-                getRarityColor(nft.rarity)
-              )}>
-                {nft.rarity}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={clsx(
+                  'px-2 py-1 rounded-full text-xs font-bold border',
+                  getRarityColor(nft.rarity)
+                )}>
+                  {Rarity[nft.rarity]}
+                </span>
+                
+                {/* Status Badge */}
+                <span className={clsx(
+                  'px-2 py-1 rounded-full text-xs font-medium',
+                  nft.isActive 
+                    ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                    : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                )}>
+                  {nft.isActive ? 'Active' : 'Inactive'}
+                </span>
+              </div>
 
               <div className="text-right">
                 <p className={clsx(
                   'font-bold',
                   compact ? 'text-sm' : 'text-lg'
                 )}>
-                  {nft.price} ℏ
+                  {parseFloat(nft.price || '0').toFixed(4)} ETH
                 </p>
                 {!compact && (
                   <p className="text-xs text-gray-400">
-                    #{nft.tokenId.split('/')[1]}
+                    #{nft.id}
                   </p>
                 )}
               </div>
@@ -186,17 +236,29 @@ export const PhysicsNFTCard: React.FC<PhysicsNFTCardProps> = ({
             {/* Action Buttons */}
             <div className="flex gap-2 pt-2">
               {isOwner ? (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setShowTradeModal(true)
-                  }}
-                  className="flex-1"
-                >
-                  Trade
-                </Button>
+                <>
+                  <Button
+                    variant={nft.isActive ? "secondary" : "physics"}
+                    size="sm"
+                    onClick={handleActivateToggle}
+                    className="flex-1"
+                    disabled={state.isLoading}
+                  >
+                    {nft.isActive ? 'Deactivate' : 'Activate'}
+                  </Button>
+                  
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setShowTradeModal(true)
+                    }}
+                    className="flex-1"
+                  >
+                    Trade
+                  </Button>
+                </>
               ) : (
                 <Button
                   variant="physics"
@@ -214,33 +276,11 @@ export const PhysicsNFTCard: React.FC<PhysicsNFTCardProps> = ({
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={onSelect}
+                onClick={handleDetailsClick}
               >
                 Details
               </Button>
             </div>
-
-            {/* Effects Preview */}
-            {nft.effects.length > 0 && !compact && (
-              <div className="pt-2 border-t border-gray-700">
-                <p className="text-xs text-gray-400 mb-1">Effects:</p>
-                <div className="flex flex-wrap gap-1">
-                  {nft.effects.slice(0, 2).map((effect, index) => (
-                    <span
-                      key={index}
-                      className="px-1 py-0.5 text-xs bg-physics-500/20 text-physics-300 rounded"
-                    >
-                      {effect.name}
-                    </span>
-                  ))}
-                  {nft.effects.length > 2 && (
-                    <span className="px-1 py-0.5 text-xs bg-gray-600 text-gray-300 rounded">
-                      +{nft.effects.length - 2}
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         </Card>
       </motion.div>
@@ -259,7 +299,7 @@ export const PhysicsNFTCard: React.FC<PhysicsNFTCardProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-lg">{nft.name}</h3>
-              <p className="text-gray-400">{nft.physicsType} • {nft.rarity}</p>
+              <p className="text-gray-400">{PhysicsType[nft.physicsType]} • {Rarity[nft.rarity]}</p>
             </div>
           </div>
 
@@ -280,10 +320,11 @@ export const PhysicsNFTCard: React.FC<PhysicsNFTCardProps> = ({
 
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Sale Price (HBAR)
+                  Sale Price (ETH)
                 </label>
                 <input
-                  type="text"
+                  type="number"
+                  step="0.0001"
                   value={tradeForm.price}
                   onChange={(e) => setTradeForm(prev => ({ ...prev, price: e.target.value }))}
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-physics-400 focus:outline-none"
@@ -295,7 +336,7 @@ export const PhysicsNFTCard: React.FC<PhysicsNFTCardProps> = ({
               <div className="p-4 bg-physics-900/20 border border-physics-500/30 rounded-lg">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400">Purchase Price:</span>
-                  <span className="text-2xl font-bold text-physics-400">{nft.price} ℏ</span>
+                  <span className="text-2xl font-bold text-physics-400">{parseFloat(nft.price || '0').toFixed(4)} ETH</span>
                 </div>
               </div>
 
@@ -317,11 +358,15 @@ export const PhysicsNFTCard: React.FC<PhysicsNFTCardProps> = ({
           <div className="flex gap-3">
             <Button
               variant="physics"
-              onClick={handleTrade}
+              onClick={() => {
+                // Handle trade logic here - you'll need to implement this in usePhysics
+                console.log('Trade NFT:', { nft: nft.id, ...tradeForm })
+                setShowTradeModal(false)
+              }}
               disabled={!tradeForm.toAccountId}
               className="flex-1"
             >
-              {isOwner ? 'Transfer NFT' : `Buy for ${nft.price} ℏ`}
+              {isOwner ? 'Transfer NFT' : `Buy for ${parseFloat(nft.price || '0').toFixed(4)} ETH`}
             </Button>
             <Button
               variant="secondary"
@@ -330,6 +375,98 @@ export const PhysicsNFTCard: React.FC<PhysicsNFTCardProps> = ({
               Cancel
             </Button>
           </div>
+        </div>
+      </Modal>
+
+      {/* Details Modal */}
+      <Modal
+        isOpen={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        title="NFT Details"
+        variant="physics"
+        size="lg"
+      >
+        <div className="space-y-6">
+          <div className="flex items-center gap-4 p-4 bg-gray-800 rounded-lg">
+            <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-physics-500/20 to-purple-500/20 flex items-center justify-center border-2 border-physics-400">
+              <span className="text-3xl">{getPhysicsIcon(nft.physicsType)}</span>
+            </div>
+            <div>
+              <h3 className="font-bold text-xl">{nft.name}</h3>
+              <p className="text-gray-400">{nft.description}</p>
+              <p className="text-sm text-gray-500 mt-1">
+                Created: {new Date(nft.createdAt * 1000).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-semibold mb-3">Basic Info</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Type:</span>
+                  <span>{PhysicsType[nft.physicsType]}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Rarity:</span>
+                  <span className={getRarityColor(nft.rarity).split(' ')[1]}>{Rarity[nft.rarity]}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Status:</span>
+                  <span className={nft.isActive ? 'text-green-400' : 'text-gray-400'}>
+                    {nft.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Owner:</span>
+                  <span className="text-xs">{nft.owner.slice(0, 6)}...{nft.owner.slice(-4)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-semibold mb-3">Properties</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Magnitude:</span>
+                  <span>{(nft.properties.magnitude / 100).toFixed(2)}x</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Duration:</span>
+                  <span>{nft.properties.duration}s</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Range:</span>
+                  <span>{nft.properties.range}m</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Cooldown:</span>
+                  <span>{nft.properties.cooldown}s</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Energy Cost:</span>
+                  <span>{nft.properties.energyCost}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {nft.properties.compatibility.length > 0 && (
+            <div>
+              <h4 className="font-semibold mb-3">Compatibility</h4>
+              <div className="flex flex-wrap gap-2">
+                {nft.properties.compatibility.map((comp, index) => (
+                  <span
+                    key={index}
+                    className="px-3 py-1 bg-physics-500/20 text-physics-300 text-sm rounded-full"
+                  >
+                    {comp}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </Modal>
     </>

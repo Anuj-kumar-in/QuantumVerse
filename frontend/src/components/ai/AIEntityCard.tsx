@@ -1,7 +1,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import clsx from 'clsx'
-import { type AIEntity, EntityType } from '../../types/ai'
+import { type AIEntity, EntityType } from '../../hooks/useAI'
 import Card from '../../components/common/Card'
 import Button from '../../components/common/Button'
 
@@ -16,14 +16,14 @@ export const AIEntityCard: React.FC<AIEntityCardProps> = ({
   onSelect,
   compact = false
 }) => {
-  const getEntityTypeIcon = (type: EntityType) => {
+  const getEntityTypeIcon = (type: number) => {
     switch (type) {
-      case EntityType.COMPANION: return '🤖'
-      case EntityType.GUARDIAN: return '🛡️'
-      case EntityType.TRADER: return '💼'
-      case EntityType.EXPLORER: return '🗺️'
-      case EntityType.CREATOR: return '🎨'
-      case EntityType.RESEARCHER: return '🔬'
+      case 0: return '🤖' // COMPANION
+      case 1: return '🛡️' // GUARDIAN
+      case 2: return '💼' // TRADER
+      case 3: return '🗺️' // EXPLORER
+      case 4: return '🎨' // CREATOR
+      case 5: return '🔬' // SCIENTIST/RESEARCHER
       default: return '❓'
     }
   }
@@ -38,13 +38,9 @@ export const AIEntityCard: React.FC<AIEntityCardProps> = ({
     }
   }
 
-  const getEmotionalState = () => {
-    const emotions = entity.personality.emotionalState
-    const dominant = Object.entries(emotions)
-      .filter(([key]) => key !== 'lastUpdate')
-      .reduce((a, b) => emotions[a[0] as keyof typeof emotions] > emotions[b[0] as keyof typeof emotions] ? a : b)
-
-    return dominant[0]
+  const getEntityTypeName = (type: number) => {
+    const names = ['COMPANION', 'GUARDIAN', 'TRADER', 'EXPLORER', 'CREATOR', 'SCIENTIST']
+    return names[type] || 'UNKNOWN'
   }
 
   return (
@@ -74,7 +70,7 @@ export const AIEntityCard: React.FC<AIEntityCardProps> = ({
         <div className="space-y-3">
           <div className="text-center">
             <h3 className="font-bold text-lg truncate">{entity.name}</h3>
-            <p className="text-sm text-gray-400">{entity.type}</p>
+            <p className="text-sm text-gray-400">{getEntityTypeName(entity.type)}</p>
           </div>
 
           {/* Current Action */}
@@ -82,7 +78,7 @@ export const AIEntityCard: React.FC<AIEntityCardProps> = ({
             <div className="p-2 bg-gray-800/50 rounded-lg">
               <p className="text-xs text-gray-400">Current Action:</p>
               <p className={clsx('text-sm font-medium', getStatusColor(entity.behavior.currentAction.status))}>
-                {entity.behavior.currentAction.id.replace('-', ' ')}
+                {entity.behavior.currentAction.type.replace('-', ' ')}
               </p>
             </div>
           )}
@@ -104,25 +100,17 @@ export const AIEntityCard: React.FC<AIEntityCardProps> = ({
             </div>
           </div>
 
-          {/* Emotional State */}
-          <div className="p-2 bg-ai-900/20 rounded-lg">
-            <p className="text-xs text-gray-400 mb-1">Emotional State:</p>
-            <p className="text-sm font-medium text-ai-300 capitalize">
-              {getEmotionalState()}
-            </p>
-          </div>
-
           {/* Progress Bar */}
           <div>
             <div className="flex justify-between text-xs text-gray-400 mb-1">
               <span>Experience</span>
-              <span>{entity.evolution.experience}/{entity.evolution.nextLevelAt}</span>
+              <span>{entity.evolution.experience}/{entity.evolution.nextLevelRequirement}</span>
             </div>
             <div className="w-full bg-gray-700 rounded-full h-1.5">
-              <div 
+              <div
                 className="bg-gradient-to-r from-ai-400 to-yellow-400 h-1.5 rounded-full transition-all duration-300"
-                style={{ 
-                  width: `${(entity.evolution.experience / entity.evolution.nextLevelAt) * 100}%` 
+                style={{
+                  width: `${(entity.evolution.experience / entity.evolution.nextLevelRequirement) * 100}%`
                 }}
               />
             </div>

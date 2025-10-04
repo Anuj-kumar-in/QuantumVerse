@@ -6,7 +6,7 @@ import { walletService } from '../services/ethereum/wallet'
 export interface QuantumIdentity {
   quantumDNA: string
   securityLevel: number
-  createdAt: number
+  createdAt: number 
   isActive: boolean
   achievements: string[]
 }
@@ -97,136 +97,117 @@ export const useQuantum = () => {
   })
 
   // Validate contract addresses and network
-  const validateContracts = useCallback(async () => {
-    if (!blockchainService.isConnected()) return false
+const validateContracts = useCallback(async () => {
+  console.log("🔍 Starting contract validation...")
+  
+  if (!blockchainService.isConnected()) {
+    console.log("❌ Blockchain service not connected")
+    return false
+  }
 
-    try {
-      const provider = walletService.getWeb3Provider()
-      if (!provider) throw new Error('No provider available')
-
-      const quantumContract = blockchainService.getContract('QuantumToken')
-      const entanglementContract = blockchainService.getContract('QuantumEntanglementContract')
-
-      if (!quantumContract || !entanglementContract) {
-        throw new Error('Contracts not available')
-      }
-
-      // Validate contract addresses have code
-      await assertHasCode(provider, await quantumContract.getAddress())
-      await assertHasCode(provider, await entanglementContract.getAddress())
-
-      return true
-    } catch (error) {
-      console.error('Contract validation failed:', error)
-      setState(prev => ({ ...prev, error: `Contract validation failed: ${(error as Error).message}` }))
-      return false
+  try {
+    const provider = walletService.getWeb3Provider()
+    if (!provider) throw new Error('No provider available')
+    
+    // Check what network we're actually on
+    const network = await provider.getNetwork()
+    console.log("🌐 Connected to network:", {
+      chainId: network.chainId.toString(),
+      name: network.name,
+      expectedChainId: "11155111"
+    })
+    
+    // Verify we're on Sepolia
+    if (network.chainId !== 11155111n) {
+      throw new Error(`Wrong network! Expected Sepolia (11155111), got ${network.chainId}`)
     }
-  }, [])
+
+    const quantumContract = await blockchainService.getContract('QuantumToken')
+    const entanglementContract = await blockchainService.getContract('QuantumEntanglementContract')
+
+    if (!quantumContract || !entanglementContract) {
+      console.log("❌ Failed to get contract instances")
+      throw new Error('Contracts not available')
+    }
+
+    // ✅ Fixed: Use .target instead of .getAddress()
+    const quantumAddress = quantumContract.target
+    const entanglementAddress = entanglementContract.target
+
+    console.log("📋 Contract addresses:")
+    console.log("QuantumToken:", quantumAddress)
+    console.log("EntanglementContract:", entanglementAddress)
+    console.log("Expected from env:", import.meta.env.VITE_QUANTUM_TOKEN_ADDRESS)
+    
+    // Check bytecode manually with better error handling
+    console.log("🔍 Checking contract bytecode...")
+    try {
+      const quantumCode = await provider.getCode(quantumAddress)
+      const entanglementCode = await provider.getCode(entanglementAddress)
+      
+      console.log("QuantumToken bytecode length:", quantumCode.length)
+      console.log("EntanglementContract bytecode length:", entanglementCode.length)
+      
+      if (quantumCode === '0x') {
+        throw new Error(`QuantumToken has no bytecode at ${quantumAddress}`)
+      }
+      if (entanglementCode === '0x') {
+        throw new Error(`EntanglementContract has no bytecode at ${entanglementAddress}`)
+      }
+      
+      console.log("✅ All contracts validated successfully")
+      return true
+      
+    } catch (codeError) {
+      console.error("Error checking bytecode:", codeError)
+      throw codeError
+    }
+    
+  } catch (error) {
+    console.error("❌ Contract validation failed:", error)
+    setState(prev => ({ ...prev, error: `Contract validation failed: ${error.message}` }))
+    return false
+  }
+}, [])
+
+
 
   // Load user's quantum data from blockchain
-  const loadQuantumData = useCallback(async () => {
-    if (!blockchainService.isConnected()) return
+const loadQuantumData = useCallback(async () => {
+  if (!blockchainService.isConnected()) return
 
-    setState(prev => ({ ...prev, isLoading: true, error: null }))
+  setState(prev => ({ ...prev, isLoading: true, error: null }))
 
-    try {
-      // Validate contracts first
-      const contractsValid = await validateContracts()
-      if (!contractsValid) {
-        setState(prev => ({ ...prev, isLoading: false }))
-        return
-      }
-
-      const account = blockchainService.getAccount()
-      if (!account) throw new Error('No account connected')
-
-      // Get contracts
-      const quantumContract = blockchainService.getContract('QuantumToken')
-      const entanglementContract = blockchainService.getContract('QuantumEntanglementContract')
-
-      if (!quantumContract || !entanglementContract) {
-        throw new Error('Failed to connect to contracts')
-      }
-
-      // Convert account to EVM address and validate
-      const evmAddress = formatAddress(blockchainService.accountIdToAddress(account))
-
-      // Load quantum token balance with safe fallback
-      const formattedBalance = await safeCall(async () => {
-        const balance = await quantumContract.balanceOf(evmAddress)
-        return formatBigNumber(balance, 8) // QUANTUM has 8 decimals
-      }, '0')
-
-      // Load quantum identity with safe fallback
-      const identity: QuantumIdentity | null = await safeCall(async () => {
-        const identityData = await quantumContract.getQuantumIdentity(evmAddress)
-
-        if (identityData && identityData.isActive) {
-          return {
-            quantumDNA: identityData.quantumDNA || '',
-            securityLevel: Number(identityData.securityLevel || 0),
-            createdAt: Number(identityData.createdAt || 0) * 1000, // Convert to JS timestamp
-            isActive: Boolean(identityData.isActive),
-            achievements: [] // Load from separate contract or storage if needed
-          }
-        }
-        return null
-      }, null)
-
-      // Load entanglements with safe fallback
-      const entanglementIds: string[] = await safeCall(async () => {
-        const ids = await entanglementContract.getUserEntanglements(evmAddress)
-        return Array.isArray(ids) ? ids : []
-      }, [])
-
-      const entanglements: QuantumEntanglement[] = []
-
-      for (const id of entanglementIds) {
-        try {
-          const entanglementData = await safeCall(async () => {
-            return await entanglementContract.getEntanglement(id)
-          }, null)
-
-          if (entanglementData) {
-            entanglements.push({
-              id: id.toString(),
-              pairA: {
-                address: formatAddress(entanglementData.pairA || ethers.ZeroAddress),
-                realityType: 'Virtual' // This could be stored in contract or derived
-              },
-              pairB: {
-                address: formatAddress(entanglementData.pairB || ethers.ZeroAddress),
-                realityType: 'Augmented'
-              },
-              entanglementStrength: Number(entanglementData.strength || 0) / 100, // Convert to percentage
-              isActive: Boolean(entanglementData.isActive),
-              lastSync: Number(entanglementData.lastSync || 0) * 1000,
-              correlationHistory: [] // Load from events or separate storage
-            })
-          }
-        } catch (error) {
-          console.warn(`Failed to load entanglement ${id}:`, error)
-        }
-      }
-
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        identity,
-        entanglements,
-        tokenBalance: formattedBalance,
-        error: null
-      }))
-
-    } catch (error) {
-      console.error('Failed to load quantum data:', error)
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: `Failed to load quantum data: ${(error as Error).message}`
-      }))
+  try {
+    // Validate contracts first
+    const contractsValid = await validateContracts()
+    if (!contractsValid) {
+      setState(prev => ({ ...prev, isLoading: false }))
+      return
     }
-  }, [validateContracts])
+
+    const account = blockchainService.getAccount()
+    if (!account) throw new Error('No account connected')
+
+    // ✅ Properly await contract instances
+    const quantumContract = await blockchainService.getContract('QuantumToken')
+    const entanglementContract = await blockchainService.getContract('QuantumEntanglementContract')
+
+    if (!quantumContract || !entanglementContract) {
+      throw new Error('Failed to connect to contracts')
+    }
+
+    // ... rest of your code
+  } catch (error) {
+    console.error('Failed to load quantum data:', error)
+    setState(prev => ({
+      ...prev,
+      isLoading: false,
+      error: `Failed to load quantum data: ${error.message}`
+    }))
+  }
+}, [validateContracts])
+
 
   // Generate quantum identity on blockchain
   const generateIdentity = useCallback(async (): Promise<boolean> => {

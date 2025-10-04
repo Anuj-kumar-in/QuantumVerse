@@ -7,6 +7,10 @@ import {
   type EthereumAccount
 } from '../../types/ethereum'
 
+
+//For wallet Service integration like Connecting to wallet with getNetwork(),getAccount(),etc methods 
+
+
 // MetaMask interface
 declare global {
   interface Window {
@@ -14,7 +18,7 @@ declare global {
   }
 }
 
-export class WalletService { // Keep name for frontend compatibility
+export class WalletService {
   private connectionState: WalletConnectionState = {
     isConnected: false,
     account: null,

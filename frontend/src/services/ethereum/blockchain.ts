@@ -1,7 +1,10 @@
 import { ethers } from 'ethers'
 import { walletService } from './wallet'
 
-// Contract ABIs (simplified - you'll need the full ABIs from your compiled contracts)
+//interaction with deployed contracts
+
+
+// Contract ABIs import from artifacts
 export const CONTRACT_ABIS = {
   QuantumToken: [
     {
@@ -178,6 +181,31 @@ export const CONTRACT_ABIS = {
         }
       ],
       "name": "QuantumEntanglement",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "quantumDNA",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "securityLevel",
+          "type": "uint256"
+        }
+      ],
+      "name": "QuantumIdentityGenerated",
       "type": "event"
     },
     {
@@ -451,6 +479,60 @@ export const CONTRACT_ABIS = {
           "type": "address"
         }
       ],
+      "name": "generateQuantumIdentity",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "getQuantumIdentity",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "string",
+              "name": "quantumDNA",
+              "type": "string"
+            },
+            {
+              "internalType": "uint256",
+              "name": "securityLevel",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "createdAt",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "isActive",
+              "type": "bool"
+            }
+          ],
+          "internalType": "struct QuantumToken.QuantumIdentity",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
       "name": "getStakeInfo",
       "outputs": [
         {
@@ -528,6 +610,40 @@ export const CONTRACT_ABIS = {
           "internalType": "address",
           "name": "",
           "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "quantumIdentities",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "quantumDNA",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "securityLevel",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "createdAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "isActive",
+          "type": "bool"
         }
       ],
       "stateMutability": "view",
@@ -7850,16 +7966,22 @@ QuantumEntanglementContract:[
 
 // Contract addresses from environment variables
 export const CONTRACT_ADDRESSES = {
-  QuantumToken: import.meta.env.VITE_QUANTUM_TOKEN_ID,
-  PhysicsToken: import.meta.env.VITE_PHYSICS_TOKEN_ID,
-  CarbonToken: import.meta.env.VITE_CARBON_TOKEN_ID,
-  RealityToken: import.meta.env.VITE_REALITY_TOKEN_ID,
-  PhysicsNFTCollection: import.meta.env.VITE_PHYSICS_NFT_COLLECTION_ID,
+  QuantumToken: import.meta.env.VITE_QUANTUM_TOKEN_ADDRESS,
+  PhysicsToken: import.meta.env.VITE_PHYSICS_TOKEN_ADDRESS,
+  CarbonToken: import.meta.env.VITE_CARBON_TOKEN_ADDRESS,
+  RealityToken: import.meta.env.VITE_REALITY_TOKEN_ADDRESS,
+  PhysicsNFTCollection: import.meta.env.VITE_PHYSICS_NFT_COLLECTION_ADDRESS,
   QuantumEntanglementContract: import.meta.env.VITE_QUANTUM_ENTANGLEMENT_CONTRACT,
   AIEntityContract: import.meta.env.VITE_AI_ENTITY_CONTRACT,
   CarbonRewardsContract: import.meta.env.VITE_CARBON_REWARDS_CONTRACT
 }
 
+
+//console for checking if stored contract addresses same as deployed one's
+console.log(CONTRACT_ADDRESSES)
+
+
+// main class for blockchain service
 class BlockchainService {
   private contracts: { [key: string]: ethers.Contract } = {}
   private provider: ethers.JsonRpcProvider | null = null
@@ -7874,40 +7996,58 @@ class BlockchainService {
   }
 
   // Get contract instance
-  getContract(contractName: keyof typeof CONTRACT_ADDRESSES): ethers.Contract | null {
-    try {
-      const address = CONTRACT_ADDRESSES[contractName]
-      if (!address) {
-        console.warn(`Contract address not found for ${contractName}`)
-        return null
-      }
+ 
 
-      // Return cached contract if exists
-      if (this.contracts[contractName]) {
-        return this.contracts[contractName]
-      }
-
-      // Create new contract instance
-      const abi = CONTRACT_ABIS[contractName] || []
-      const connectedAccount = walletService.getConnectedAccount()
-
-      let contract: ethers.Contract
-    console.log("provider initialized")
-
-      if (this.provider) {
-        contract = new ethers.Contract(address, abi, this.provider)
-      } else {
-        throw new Error('Provider not initialized')
-      }
-
-      this.contracts[contractName] = contract
-      return contract
-
-    } catch (error) {
-      console.error(`Failed to get contract ${contractName}:`, error)
+// Update your getContract method to be async
+async getContract(contractName: keyof typeof CONTRACT_ADDRESSES): Promise<ethers.Contract | null> {
+  try {
+    const address = CONTRACT_ADDRESSES[contractName]
+    if (!address) {
+      console.warn(`Contract address not found for ${contractName}`)
       return null
     }
+
+    // Return cached contract if exists
+    if (this.contracts[contractName]) {
+      return this.contracts[contractName]
+    }
+
+    // Create new contract instance
+    const abi = CONTRACT_ABIS[contractName]
+    let contract: ethers.Contract
+
+    console.log("provider initialized")
+    
+    if (this.provider) { 
+      // Try to use signer from wallet service for write operations
+      const web3Provider = walletService.getWeb3Provider()
+      const connectedAccount = walletService.getConnectedAccount()
+      
+      if (web3Provider && connectedAccount) {
+        // ✅ Await the signer from wallet
+        const signer = await web3Provider.getSigner()
+        contract = new ethers.Contract(address, abi, signer)
+        console.log(`✅ Created contract with signer: ${contractName}`)
+      } else {
+        // Fallback to read-only provider
+        contract = new ethers.Contract(address, abi, this.provider)
+        console.log(`⚠️ Created contract with provider (read-only): ${contractName}`)
+      }
+    } else {
+      throw new Error('Provider not initialized')
+    }
+
+    // Cache the contract
+    this.contracts[contractName] = contract
+    return contract
+  } catch (error) {
+    console.error(`Failed to get contract ${contractName}:`, error)
+    return null
   }
+}
+
+
+
 
   // Clear cached contracts (call when wallet changes)
   clearContracts() {

@@ -12,6 +12,8 @@ const EVENT_MESSAGING_ABI = [
   "event MessageSubmitted(uint256 indexed topicId, address indexed sender, string message, uint256 timestamp)"
 ]
 
+//TASK VITE_EVENT_MESSAGING_CONTRACT_ADDRESS MUST BE CREATED
+
 export class HCSService { // Keep name for frontend compatibility
   private subscriptions: Map<string, any> = new Map()
   private contract: ethers.Contract | null = null

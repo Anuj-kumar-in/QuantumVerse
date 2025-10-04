@@ -12,12 +12,12 @@ import AIEntities from './pages/AIEntities'
 import Entanglement from './pages/Entanglement'
 import Carbon from './pages/Carbon'
 import Portal from './pages/Portal'
-initializeHederaClient()
+//initializeHederaClient()
 function App() {
   const { isInitialized: isHederaInitialized } = useHedera();  // Track the hook’s state
   const [isInitializedByApp, setIsInitializedByApp] = useState(false); // Your own state for initialization control
 
-  // Initialize Hedera inside your App component’s useEffect
+  // Initialize Ethereum Client 
   useEffect(() => {
     async function initialize() {
       await initializeHederaClient();
@@ -36,7 +36,7 @@ function App() {
             Initializing QuantumVerse...
           </h2>
           <p className="text-gray-400 mt-2">
-            Connecting to Hedera Hashgraph
+            Connecting to Ethereum Netwok..
           </p>
         </div>
       </div>

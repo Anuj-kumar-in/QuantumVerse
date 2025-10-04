@@ -10,9 +10,10 @@ import Loader from '../../components/common/Loader'
 import AIEntityCard from './AIEntityCard'
 
 export const AIEntityExplorer: React.FC = () => {
-  const { entities, isLoading, createEntity, refreshEntities } = useAI()
+  const { entities, isLoading, error, createEntity, refreshEntities, clearError } = useAI()
   const account = useAccount()
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false)
   const [selectedEntity, setSelectedEntity] = useState<any>(null)
   const [filter, setFilter] = useState<EntityType | 'ALL'>('ALL')
   const [creationForm, setCreationForm] = useState({
@@ -21,6 +22,23 @@ export const AIEntityExplorer: React.FC = () => {
     personality: 'Friendly and helpful'
   })
 
+  // ✅ Fixed helper functions
+  const getEntityTypeFromNumber = (num: number): EntityType => {
+    return num as EntityType // Direct cast since enum values are 0,1,2,3,4,5
+  }
+
+  const getEntityTypeName = (type: EntityType): string => {
+    switch (type) {
+      case EntityType.COMPANION: return 'COMPANION'
+      case EntityType.GUARDIAN: return 'GUARDIAN'
+      case EntityType.TRADER: return 'TRADER'
+      case EntityType.EXPLORER: return 'EXPLORER'
+      case EntityType.CREATOR: return 'CREATOR'
+      case EntityType.SCIENTIST: return 'SCIENTIST'
+      default: return 'UNKNOWN'
+    }
+  }
+
   const getEntityTypeIcon = (type: EntityType) => {
     switch (type) {
       case EntityType.COMPANION: return '🤖'
@@ -28,29 +46,53 @@ export const AIEntityExplorer: React.FC = () => {
       case EntityType.TRADER: return '💼'
       case EntityType.EXPLORER: return '🗺️'
       case EntityType.CREATOR: return '🎨'
-      case EntityType.RESEARCHER: return '🔬'
+      case EntityType.SCIENTIST: return '🔬'
       default: return '❓'
     }
+  }
+
+  const handleOpenCreateModal = () => {
+    clearError()
+    setShowCreateModal(true)
   }
 
   const handleCreateEntity = async () => {
     if (!creationForm.name.trim()) return
 
+    console.log('Creating entity with type:', creationForm.type)
+
     const entity = await createEntity(creationForm.type, creationForm.name)
     if (entity) {
       setShowCreateModal(false)
+      setShowSuccessAnimation(true)
+      
       setCreationForm({
         type: EntityType.COMPANION,
         name: '',
         personality: 'Friendly and helpful'
       })
+      
+      setTimeout(() => {
+        setShowSuccessAnimation(false)
+      }, 3000)
+      
       refreshEntities()
     }
   }
 
-  const filteredEntities = entities.filter(entity => 
-    filter === 'ALL' || entity.type === filter
-  )
+  // ✅ Fixed filtering logic
+  const filteredEntities = entities.filter(entity => {
+    console.log(`Entity ${entity.name}: type=${entity.type}, filter=${filter}`)
+    
+    if (filter === 'ALL') return true
+    
+    // Direct comparison of numeric types
+    return entity.type === filter
+  })
+
+  console.log('Entities for filtering:', entities.map(e => ({ name: e.name, type: e.type })))
+  console.log('Current filter:', filter)
+  console.log('Filtered entities:', filteredEntities.map(e => ({ name: e.name, type: e.type })))
 
   if (!account) {
     return (
@@ -68,6 +110,23 @@ export const AIEntityExplorer: React.FC = () => {
     )
   }
 
+  if (error && !showCreateModal) {
+    return (
+      <Card variant="ai" className="text-center">
+        <div className="py-8">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/20 flex items-center justify-center">
+            <span className="text-2xl">⚠️</span>
+          </div>
+          <h3 className="text-lg font-semibold mb-2 text-red-400">Error</h3>
+          <p className="text-gray-300 mb-6">{error}</p>
+          <Button variant="secondary" onClick={clearError}>
+            Try Again
+          </Button>
+        </div>
+      </Card>
+    )
+  }
+
   if (isLoading) {
     return (
       <div className="text-center py-12">
@@ -78,6 +137,41 @@ export const AIEntityExplorer: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Success Animation */}
+      <AnimatePresence>
+        {showSuccessAnimation && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -50, scale: 0.9 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50"
+          >
+            <Card variant="ai" className="border-green-500/50 bg-green-900/20">
+              <div className="flex items-center gap-3 p-4">
+                <motion.div
+                  animate={{ 
+                    rotate: [0, 360],
+                    scale: [1, 1.2, 1]
+                  }}
+                  transition={{ 
+                    duration: 1.5,
+                    ease: "easeInOut"
+                  }}
+                  className="text-3xl"
+                >
+                  ✅
+                </motion.div>
+                <div>
+                  <h3 className="text-lg font-semibold text-green-300">AI Entity Created Successfully!</h3>
+                  <p className="text-sm text-green-200">Your new AI companion is ready to explore the QuantumVerse.</p>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <Card variant="ai" gradient className="relative overflow-hidden">
         <div className="relative z-10 space-y-4">
@@ -117,7 +211,7 @@ export const AIEntityExplorer: React.FC = () => {
 
               <Button
                 variant="ai"
-                onClick={() => setShowCreateModal(true)}
+                onClick={handleOpenCreateModal}
                 glow
               >
                 <span className="text-xl mr-2">🤖</span>
@@ -136,7 +230,7 @@ export const AIEntityExplorer: React.FC = () => {
 
             <div className="p-4 bg-gray-800/50 rounded-lg backdrop-blur-sm">
               <div className="text-2xl text-yellow-400 mb-1">
-                {Object.values(EntityType).length}
+                6
               </div>
               <p className="text-sm text-gray-400">Entity Types</p>
             </div>
@@ -158,26 +252,36 @@ export const AIEntityExplorer: React.FC = () => {
         </div>
       </Card>
 
-      {/* Filters */}
+      {/* ✅ Fixed Filters */}
       <div className="flex flex-wrap gap-2">
         <Button
           variant={filter === 'ALL' ? 'ai' : 'secondary'}
           size="sm"
           onClick={() => setFilter('ALL')}
         >
-          All Types
+          All Types ({entities.length})
         </Button>
 
-        {Object.values(EntityType).map((type) => (
-          <Button
-            key={type}
-            variant={filter === type ? 'ai' : 'secondary'}
-            size="sm"
-            onClick={() => setFilter(type)}
-          >
-            {getEntityTypeIcon(type)} {type}
-          </Button>
-        ))}
+        {[
+          EntityType.COMPANION,
+          EntityType.GUARDIAN,
+          EntityType.TRADER,
+          EntityType.EXPLORER,
+          EntityType.CREATOR,
+          EntityType.SCIENTIST
+        ].map((type) => {
+          const count = entities.filter(e => e.type === type).length
+          return (
+            <Button
+              key={type}
+              variant={filter === type ? 'ai' : 'secondary'}
+              size="sm"
+              onClick={() => setFilter(type)}
+            >
+              {getEntityTypeIcon(type)} {getEntityTypeName(type)} ({count})
+            </Button>
+          )
+        })}
       </div>
 
       {/* Entity Grid */}
@@ -187,15 +291,20 @@ export const AIEntityExplorer: React.FC = () => {
             <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gray-700 flex items-center justify-center">
               <span className="text-3xl">🤖</span>
             </div>
-            <h3 className="text-lg font-semibold mb-2">No AI Entities Found</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {filter === 'ALL' ? 'No AI Entities Found' : `No ${getEntityTypeName(filter as EntityType)} Entities`}
+            </h3>
             <p className="text-gray-400 mb-6">
-              Create your first AI entity to start building your autonomous team
+              {filter === 'ALL' 
+                ? 'Create your first AI entity to start building your autonomous team'
+                : `Create your first ${getEntityTypeName(filter as EntityType)} entity`
+              }
             </p>
             <Button
               variant="ai"
-              onClick={() => setShowCreateModal(true)}
+              onClick={handleOpenCreateModal}
             >
-              Create First Entity
+              Create {filter === 'ALL' ? 'First' : getEntityTypeName(filter as EntityType)} Entity
             </Button>
           </div>
         </Card>
@@ -224,6 +333,19 @@ export const AIEntityExplorer: React.FC = () => {
             Create a new autonomous AI entity that will act independently in the QuantumVerse.
           </p>
 
+          {error && (
+            <div className="p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-red-400">⚠️</span>
+                <h5 className="font-semibold text-red-300">Creation Failed</h5>
+              </div>
+              <p className="text-sm text-red-200 mb-3">{error}</p>
+              <Button variant="secondary" size="sm" onClick={clearError}>
+                Dismiss
+              </Button>
+            </div>
+          )}
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">
@@ -231,14 +353,30 @@ export const AIEntityExplorer: React.FC = () => {
               </label>
               <select
                 value={creationForm.type}
-                onChange={(e) => setCreationForm(prev => ({ ...prev, type: e.target.value as EntityType }))}
+                onChange={(e) => setCreationForm(prev => ({ 
+                  ...prev, 
+                  type: parseInt(e.target.value) as EntityType 
+                }))}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-ai-400 focus:outline-none"
               >
-                {Object.values(EntityType).map((type) => (
-                  <option key={type} value={type}>
-                    {getEntityTypeIcon(type)} {type}
-                  </option>
-                ))}
+                <option value={EntityType.COMPANION}>
+                  {getEntityTypeIcon(EntityType.COMPANION)} COMPANION
+                </option>
+                <option value={EntityType.GUARDIAN}>
+                  {getEntityTypeIcon(EntityType.GUARDIAN)} GUARDIAN
+                </option>
+                <option value={EntityType.TRADER}>
+                  {getEntityTypeIcon(EntityType.TRADER)} TRADER
+                </option>
+                <option value={EntityType.EXPLORER}>
+                  {getEntityTypeIcon(EntityType.EXPLORER)} EXPLORER
+                </option>
+                <option value={EntityType.CREATOR}>
+                  {getEntityTypeIcon(EntityType.CREATOR)} CREATOR
+                </option>
+                <option value={EntityType.SCIENTIST}>
+                  {getEntityTypeIcon(EntityType.SCIENTIST)} SCIENTIST
+                </option>
               </select>
             </div>
 
@@ -254,30 +392,12 @@ export const AIEntityExplorer: React.FC = () => {
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-ai-400 focus:outline-none"
               />
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Personality Trait
-              </label>
-              <select
-                value={creationForm.personality}
-                onChange={(e) => setCreationForm(prev => ({ ...prev, personality: e.target.value }))}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-ai-400 focus:outline-none"
-              >
-                <option value="Friendly and helpful">Friendly and helpful</option>
-                <option value="Analytical and logical">Analytical and logical</option>
-                <option value="Creative and artistic">Creative and artistic</option>
-                <option value="Protective and vigilant">Protective and vigilant</option>
-                <option value="Adventurous and curious">Adventurous and curious</option>
-                <option value="Strategic and calculated">Strategic and calculated</option>
-              </select>
-            </div>
           </div>
 
           <div className="p-4 bg-ai-900/20 border border-ai-500/30 rounded-lg">
-            <h5 className="font-semibold text-ai-300 mb-2">💰 Creation Cost</h5>
+            <h5 className="font-semibold text-ai-300 mb-2">🆓 Free Creation</h5>
             <p className="text-sm text-ai-200">
-              Basic AI Entity: 25 HBAR. The entity will begin with basic capabilities
+              AI Entity creation is currently free for testing. The entity will begin with basic capabilities
               and evolve through interactions and experiences.
             </p>
           </div>

@@ -21,7 +21,7 @@ export interface EthereumConfig {
 }
 
 export interface EthereumAccount {
-  accountId: string // Ethereum address (keeping accountId for frontend compatibility)
+  accountId: string // Ethereum address
   publicKey: string // Ethereum address
   balance: string // ETH balance in ether units
   tokens: TokenInfo[]

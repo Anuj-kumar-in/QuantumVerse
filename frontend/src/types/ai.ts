@@ -15,14 +15,14 @@ export interface AIEntity {
 }
 
 export enum EntityType {
-  COMPANION = 'COMPANION',
-  GUARDIAN = 'GUARDIAN',
-  TRADER = 'TRADER',
-  EXPLORER = 'EXPLORER',
-  CREATOR = 'CREATOR',
-  RESEARCHER = 'RESEARCHER',
-  SOCIAL = 'SOCIAL'
+  COMPANION = 0,
+  GUARDIAN = 1,
+  TRADER = 2,
+  EXPLORER = 3,
+  CREATOR = 4,
+  SCIENTIST = 5
 }
+
 
 export interface AIPersonality {
   traits: PersonalityTrait[];
