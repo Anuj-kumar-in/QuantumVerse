@@ -11,8 +11,11 @@
   },
   "dependencies": {
     "@hashgraph/sdk": "^2.74.0",
+    "@reduxjs/toolkit": "^2.9.0",
     "@tailwindcss/vite": "^4.1.14",
     "dotenv": "^17.2.3",
+    "ethers": "^6.15.0",
+    "hashconnect": "^3.0.14",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "tailwindcss": "^4.1.14"
