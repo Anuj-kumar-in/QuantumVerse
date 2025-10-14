@@ -1,9 +1,14 @@
 import { useState } from 'react'
 import './App.css'
-import Navbar from './components/navbar'
+
+import Carbon from './pages/Carbon'
 
 function App() {
-    <Navbar/>
+    return (
+        <>
+       <Carbon/>
+        </>
+    )
   
 }
 
