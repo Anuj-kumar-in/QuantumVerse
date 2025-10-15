@@ -99,7 +99,7 @@ TREASURY_PRIVATE_KEY=${Treasurypvk}
 TREASURY_PUBLIC_KEY=${Treasurypuk}
 TREASURY_ID=${TreasuryId}`;
 
-    fs.writeFileSync('.env.contracts', envVars);
+    fs.writeFileSync('.env', envVars);
 
 
 
