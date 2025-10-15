@@ -625,7 +625,7 @@ ${aiResult.reasoning}`
       `}</style>
       
       <div className="min-h-screen bg-[var(--ink)] text-white">
-        <main className="max-w-3xl mx-auto px-4 py-10 space-y-8">
+        <main className="w-90vw mx-auto px-4 py-10 space-y-8">
           
           {/* Top banner showing the carbon rewards */}
           <section className="bg-[var(--mustard)] text-[var(--ink)] rounded-2xl p-6 shadow-lg fade-in">
@@ -663,7 +663,7 @@ ${aiResult.reasoning}`
 
           {/* Navigation */}
           <nav className="bg-[var(--pane)] text-[var(--mustard)] rounded-2xl p-4 shadow-xl fade-in">
-            <ul className="flex flex-wrap justify-center gap-3 text-sm font-medium">
+            <ul className="flex flex-wrap justify-center gap-[3vw] text-sm font-medium">
               <li>
                 <button 
                   onClick={() => handleNavigation('dashboard')}
