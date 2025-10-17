@@ -1,151 +1,103 @@
-// hooks/useWallet.js
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { HashConnect, HashConnectConnectionState } from 'hashconnect';
 import { LedgerId, TransferTransaction, AccountId, Hbar } from '@hashgraph/sdk';
 
+
 const appMetadata = {
     name: "QuantumVerse",
-    description: "AR/VR game with carbon credits",
-    icons: ["https://yourdomain.com/logo.png"],
-    url: window.location.origin
+    description: "AR/VR game",
+    icons: [""],
+    url: "https://localhost:3000"
     };
 
-    const walletConnectId = "9df5a32fda8222e3671eb5a93be8b4d8";
+    let hashconnectInstance = null;
+    const walletConnectId = "e1001930ab636b816934c94b6767fec9"
 
     export const useWallet = () => {
     const [state, setState] = useState(HashConnectConnectionState.Disconnected);
     const [pairingData, setPairingData] = useState(null);
     const [connectedAccount, setConnectedAccount] = useState(null);
     const [isInitialized, setIsInitialized] = useState(false);
-    
 
-    const hashconnectRef = useRef(null);
-
-
-    useEffect(() => {
-        let isMounted = true;
-
-        const initializeHashConnect = async () => {
-
-        if (hashconnectRef.current) {
-            console.log('HashConnect already initialized');
-            return;
-        }
+    const initializeHashConnect = useCallback(async () => {
+        if (hashconnectInstance || isInitialized) return hashconnectInstance;
 
         try {
-            console.log('🔷 Initializing HashConnect...');
-            
-
-            const hashconnect = new HashConnect(
+        hashconnectInstance = new HashConnect(
             LedgerId.TESTNET,
             walletConnectId,
             appMetadata,
-            true // debug mode
-            );
+            true
+        );
 
+        hashconnectInstance.pairingEvent.on((newPairing) => {
+            setPairingData(newPairing);
+            setConnectedAccount(newPairing.accountIds[0]);
+        });
 
-            hashconnect.pairingEvent.on((newPairing) => {
-            console.log('✅ Pairing successful:', newPairing);
-            if (isMounted) {
-                setPairingData(newPairing);
-                if (newPairing?.accountIds?.length > 0) {
-                setConnectedAccount(newPairing.accountIds[0]);
-                }
-            }
-            });
+        hashconnectInstance.disconnectionEvent.on((data) => {
+            setPairingData(null);
+            setConnectedAccount(null);
+        });
 
-            hashconnect.disconnectionEvent.on((data) => {
-            console.log('🔌 Wallet disconnected:', data);
-            if (isMounted) {
-                setPairingData(null);
-                setConnectedAccount(null);
-            }
-            });
+        hashconnectInstance.connectionStatusChangeEvent.on((connectionStatus) => {
+            setState(connectionStatus);
+        });
 
-            hashconnect.connectionStatusChangeEvent.on((connectionStatus) => {
-            console.log('🔄 Connection status changed:', connectionStatus);
-            if (isMounted) {
-                setState(connectionStatus);
-            }
-            });
+        await hashconnectInstance.init();
+        setIsInitialized(true);
 
-            // Now initialize
-            await hashconnect.init();
-            console.log('✅ HashConnect initialized successfully');
-
-            if (isMounted) {
-            hashconnectRef.current = hashconnect;
-            setIsInitialized(true);
-            }
-
+        return hashconnectInstance;
         } catch (error) {
-            console.error('❌ Failed to initialize HashConnect:', error);
-            if (isMounted) {
-            setState(HashConnectConnectionState.Disconnected);
-            }
+        throw error;
         }
-        };
-
-        initializeHashConnect();
-
-
-        return () => {
-        isMounted = false;
-        if (hashconnectRef.current) {
-            hashconnectRef.current.disconnect().catch(console.error);
-        }
-        };
-    }, []);
-
+    }, [isInitialized]);
 
     const connectWallet = useCallback(async () => {
-        if (!isInitialized || !hashconnectRef.current) {
-        throw new Error('HashConnect not initialized yet. Please wait a moment.');
+        try {
+        if (!hashconnectInstance) {
+            await initializeHashConnect();
         }
 
         if (state === HashConnectConnectionState.Paired && connectedAccount) {
-        console.log('✅ Wallet already connected:', connectedAccount);
-        return connectedAccount;
+            return connectedAccount;
         }
 
-        try {
-        console.log('🔷 Opening pairing modal...');
+        hashconnectInstance.openPairingModal();
         
+        return new Promise((resolve, reject) => {
+            const handlePairing = (pairingData) => {
+            resolve(pairingData.accountIds[0]);
+            hashconnectInstance.pairingEvent.off(handlePairing);
+            };
 
-        await hashconnectRef.current.openPairingModal();
+            hashconnectInstance.pairingEvent.on(handlePairing);
 
-        
+            setTimeout(() => {
+            hashconnectInstance.pairingEvent.off(handlePairing);
+            reject(new Error("Connection timeout"));
+            }, 30000);
+        });
         } catch (error) {
-        console.error('❌ Failed to open pairing modal:', error);
         throw error;
         }
-    }, [isInitialized, state, connectedAccount]);
+    }, [state, connectedAccount, initializeHashConnect]);
 
-
-    const disconnectWallet = useCallback(async () => {
-        if (hashconnectRef.current) {
-        try {
-            console.log('🔌 Disconnecting wallet...');
-            await hashconnectRef.current.disconnect();
-            setPairingData(null);
-            setConnectedAccount(null);
-            setState(HashConnectConnectionState.Disconnected);
-        } catch (error) {
-            console.error('❌ Disconnect failed:', error);
-        }
+    const disconnectWallet = useCallback(() => {
+        if (hashconnectInstance) {
+        hashconnectInstance.disconnect();
         }
     }, []);
 
-
     const sendHbar = useCallback(async (toAccountId, amount) => {
-        if (!hashconnectRef.current || !connectedAccount) {
+        if (!hashconnectInstance || !connectedAccount) {
         throw new Error("Wallet not connected");
         }
 
         try {
         const fromAccount = AccountId.fromString(connectedAccount);
         const toAccount = AccountId.fromString(toAccountId);
-        const signer = hashconnectRef.current.getSigner(fromAccount);
+        const signer = hashconnectInstance.getSigner(fromAccount);
 
         const transaction = await new TransferTransaction()
             .addHbarTransfer(fromAccount, new Hbar(-amount))
@@ -154,35 +106,39 @@ const appMetadata = {
 
         const response = await transaction.executeWithSigner(signer);
         const receipt = await response.getReceiptWithSigner(signer);
-        
+
         return receipt;
         } catch (error) {
-        console.error("❌ Transaction failed:", error);
         throw error;
         }
     }, [connectedAccount]);
 
-
     const getSigner = useCallback(() => {
-        if (!hashconnectRef.current || !connectedAccount) {
+        if (!hashconnectInstance || !connectedAccount) {
         throw new Error("Wallet not connected");
         }
-        return hashconnectRef.current.getSigner(AccountId.fromString(connectedAccount));
+        return hashconnectInstance.getSigner(AccountId.fromString(connectedAccount));
     }, [connectedAccount]);
 
-    return {
+    useEffect(() => {
+        initializeHashConnect();
+    }, [initializeHashConnect]);
 
+    return {
         isConnected: state === HashConnectConnectionState.Paired && !!connectedAccount,
         connectedAccount,
         connectionState: state,
         pairingData,
         isInitialized,
-        
-
         connectWallet,
         disconnectWallet,
         sendHbar,
         getSigner,
-        hashconnect: hashconnectRef.current
+        hashconnect: hashconnectInstance
     };
     };
+
+    export const connectWallet = async () => {
+    const { connectWallet: connect } = useWallet();
+    return connect();
+};
