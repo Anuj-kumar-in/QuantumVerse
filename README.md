@@ -20,7 +20,7 @@ A decentralized marketplace for trading physics properties, quantum assets, and 
 - **TailwindCSS** - Utility-first CSS framework
 - **Framer Motion** - Animation library for smooth interactions
 - **Redux Toolkit** - State management
-- **React Router** - Client-side routing
+- **Styled Components** - CSS-in-JS styling
 
 ### Blockchain
 - **Hedera SDK** - Official JavaScript SDK for Hedera Hashgraph
@@ -60,7 +60,7 @@ Before running this project, make sure you have the following installed:
 
 ### 1. Clone the Repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/Anuj-kumar-in/QuantumVerse
 cd QuantumVerse
 ```
 
@@ -165,29 +165,43 @@ The application will be available at `http://localhost:5173`
 3. Confirm payment transaction
 4. NFT transfers to your wallet
 
+### Additional Pages
+- **Identity**: Manage your digital identity and profiles
+- **Entanglement**: Explore quantum entanglement features
+- **Carbon**: Trade and manage carbon credits
+
 ## 🏗 Project Structure
 
 ```
 QuantumVerse/
 ├── frontend/
 │   ├── public/                 # Static assets
+│   │   └── image/              # Image assets
 │   ├── src/
 │   │   ├── components/         # Reusable UI components
-│   │   │   └── common/         # Common components (Button, Card, etc.)
+│   │   │   ├── navbar.jsx      # Navigation component
+│   │   │   └── sidebar.jsx     # Sidebar component
 │   │   ├── hooks/              # Custom React hooks
+│   │   │   ├── useHedera.js    # Hedera blockchain hook
+│   │   │   └── useWallet.js    # Wallet connection hook
 │   │   ├── pages/              # Page components
 │   │   │   ├── Marketplace.jsx  # Main marketplace page
 │   │   │   ├── Carbon.jsx       # Carbon credits page
-│   │   │   └── ...
+│   │   │   ├── Identity.jsx     # Identity management page
+│   │   │   └── Entanglement.jsx # Quantum entanglement page
 │   │   ├── scripts/            # Deployment and utility scripts
+│   │   │   └── deploy.js       # Smart contract deployment
 │   │   ├── App.jsx             # Main app component
 │   │   ├── main.jsx            # App entry point
+│   │   ├── App.css             # App-specific styles
 │   │   └── index.css           # Global styles
 │   ├── .env.example            # Environment template
+│   ├── .env.contracts          # Generated contract configurations
 │   ├── package.json            # Dependencies and scripts
 │   ├── vite.config.js          # Vite configuration
 │   └── eslint.config.js        # ESLint configuration
 ├── .gitignore
+├── .gitattributes
 └── README.md
 ```
 
