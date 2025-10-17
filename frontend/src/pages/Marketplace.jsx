@@ -215,14 +215,16 @@ const Loader = ({ size = 'md' }) => {
 }
 
 const NFTCard = ({ nft, onBuy, onView, isOwned, isConnected, loading }) => {
+     const [randomImageNum] = useState(() => Math.floor(Math.random() * 10) + 1);
     const rarityColor = RARITY_COLORS[nft.rarity] || 'text-gray-400'
     const physicsTypeName = PHYSICS_TYPE_NAMES[nft.physicsType] || 'Unknown'
     const rarityName = RARITY_NAMES[nft.rarity] || 'Unknown'
+    const imageUrl = `../../public/image/${randomImageNum}.jpg`;
     
     return (
         <Card variant="physics" className="hover:shadow-xl transition-shadow duration-300">
             <div className="aspect-square mb-4 overflow-hidden rounded-lg bg-[var(--pane)]">
-                <img src={nft.image} alt={nft.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                <img src={imageUrl} alt={nft.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
             </div>
             <div className="space-y-3">
                 <div className="flex justify-between items-start">
