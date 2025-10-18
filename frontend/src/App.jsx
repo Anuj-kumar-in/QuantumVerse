@@ -1,8 +1,8 @@
 // src/App.js
 import React, { useState } from 'react'
 import { WalletProvider } from './Context/WalletContext'
-import Navbar from './components/Navbar'
-import Sidebar from './components/Sidebar'
+import Navbar from './components/navbar'
+import Sidebar from './components/sidebar'
 import Carbon from './pages/Carbon'
 import Marketplace from './pages/Marketplace'
 import Identity from './pages/Identity'
