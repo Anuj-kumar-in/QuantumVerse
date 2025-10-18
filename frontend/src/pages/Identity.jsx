@@ -244,10 +244,11 @@ const Identity = () => {
         <>
             <style>{`
                 :root {
-                    --ink: #3b2f2f;     /* dark brown */
-                    --pane: #5c4033;    /* mid brown */
-                    --mustard: #eec329; /* accent */
+                    --ink: #0a0a0f;           /* Very dark blue-black */
+                    --pane: #1a1a2e;         /* Dark blue-gray */
+                    --mustard: #ffd700;      /* Gold accent */
                 }
+
 
                 @keyframes fade {
                     from { opacity:.3; transform: translateY(4px); }

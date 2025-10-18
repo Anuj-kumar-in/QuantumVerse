@@ -219,7 +219,7 @@ const NFTCard = ({ nft, onBuy, onView, isOwned, isConnected, loading }) => {
     const rarityColor = RARITY_COLORS[nft.rarity] || 'text-gray-400'
     const physicsTypeName = PHYSICS_TYPE_NAMES[nft.physicsType] || 'Unknown'
     const rarityName = RARITY_NAMES[nft.rarity] || 'Unknown'
-    const imageUrl = `../../public/image/${randomImageNum}.jpg`;
+    const imageUrl = `/image/${randomImageNum}.jpg`;
     
     return (
         <Card variant="physics" className="hover:shadow-xl transition-shadow duration-300">
@@ -826,12 +826,20 @@ export const Marketplace = () => {
     return (
         <>
             <style>{`
-                :root {
-                    --ink: #5c4033;
-                    --pane: #3b2f2f;
-                    --mustard: #eec329;
+                        :root {
+            --ink: #0a0a0f;           /* Very dark blue-black */
+            --pane: #1a1a2e;         /* Dark blue-gray */
+            --mustard: #ffd700;      /* Gold accent */
+        }
+
+
+                @keyframes fade {
+                    from { opacity:.3; transform: translateY(4px); }
+                    to   { opacity:1;  transform: translateY(0); }
                 }
+                .fade-in { animation: fade .25s ease; }
             `}</style>
+
             <div className="min-h-screen bg-[var(--ink)] text-white">
                 <div className="bg-gradient-to-r from-[var(--pane)] via-[var(--ink)] to-[var(--pane)] p-8">
                     <div className="max-w-7xl mx-auto">

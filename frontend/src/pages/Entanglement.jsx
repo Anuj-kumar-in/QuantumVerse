@@ -644,10 +644,11 @@ const createEntanglementTopic = async () => {
         <>
             <style>{`
                 :root {
-                    --ink: #3b2f2f;
-                    --pane: #5c4033;
-                    --mustard: #eec329;
+                    --ink: #0a0a0f;           /* Very dark blue-black */
+                    --pane: #1a1a2e;         /* Dark blue-gray */
+                    --mustard: #ffd700;      /* Gold accent */
                 }
+
                 @keyframes fade {
                     from { opacity:.3; transform: translateY(4px); }
                     to   { opacity:1;  transform: translateY(0); }
