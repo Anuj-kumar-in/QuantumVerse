@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { useWallet } from '../hooks/useWallet'
+import { useWallet } from '../Context/WalletContext'
 import { 
     TokenCreateTransaction,
     TokenType,

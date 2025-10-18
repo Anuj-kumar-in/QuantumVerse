@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { useWallet } from '../hooks/useWallet'
+import { useWallet } from '../Context/WalletContext'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { TransferTransaction, AccountId, Hbar } from '@hashgraph/sdk'
 
@@ -318,7 +317,7 @@ export const Carbon = () => {
       try {
         
         const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/) || 
-                         responseText.match(/```\s*([\s\S]*?)\s*```/)
+                        responseText.match(/```\s*([\s\S]*?)\s*```/)
         
         const jsonText = jsonMatch ? jsonMatch[1] : responseText
         aiAnalysis = JSON.parse(jsonText.trim())

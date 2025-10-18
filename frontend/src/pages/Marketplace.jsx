@@ -8,7 +8,7 @@ import {
     Client,
     PrivateKey
 } from '@hashgraph/sdk'
-import { useWallet } from '../hooks/useWallet'
+import { useWallet } from '../Context/WalletContext'
 import { Buffer } from 'buffer'
 
 // Configuration from your .env

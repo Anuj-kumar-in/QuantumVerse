@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useWallet } from '../hooks/useWallet'
+import { useWallet } from '../Context/WalletContext'
 import { 
     TokenCreateTransaction,
     TokenType,
@@ -37,6 +37,11 @@ const Entanglement = () => {
     const [assetStates, setAssetStates] = useState({})
     const [entanglementPairs, setEntanglementPairs] = useState({})
 
+function imageUrl(){
+    const randomImageNum= Math.floor(Math.random() * 10) + 1
+    const Url = `/image/${randomImageNum}.jpg`;
+    return Url
+}
     const tabs = [
         { id: 'lab', label: 'Entanglement Lab', icon: '🔬' },
         { id: 'monitor', label: 'Monitor', icon: '📊' },
@@ -640,6 +645,7 @@ const createEntanglementTopic = async () => {
         }
     }, [isConnected])
 
+
     return (
         <>
             <style>{`
@@ -743,7 +749,7 @@ const createEntanglementTopic = async () => {
                         </ul>
                     </nav>
 
-                    <div className="min-h-[400px]">
+                    <div className="min-h-[600px]">
                         {activeTab === 'lab' && (
                             <section className="bg-[var(--pane)] text-[var(--mustard)] rounded-2xl p-6 shadow-xl space-y-6 fade-in">
                                 <h2 className="text-xl font-semibold">Entanglement Laboratory</h2>
@@ -793,14 +799,14 @@ const createEntanglementTopic = async () => {
                                                                     : 'border-[var(--mustard)]/20 bg-[var(--ink)] hover:border-purple-400'
                                                             }`}
                                                         >
-                                                            <img src={nft.image} alt={nft.name} className="w-full h-20 object-cover rounded-lg mb-2" />
+                                                            <img src={imageUrl()} alt={nft.name} className="w-full h-20 object-cover rounded-lg mb-2" />
                                                             <h5 className="text-xs font-semibold text-white truncate">{nft.name}</h5>
                                                             <p className="text-xs text-white/60">#{nft.serial}</p>
                                                         </div>
                                                     ))}
                                                 </div>
                                             </div>
-
+                                                    
                                             <div>
                                                 <h4 className="font-semibold mb-3 text-white/80">Select NFT B</h4>
                                                 <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto">
@@ -814,7 +820,7 @@ const createEntanglementTopic = async () => {
                                                                     : 'border-[var(--mustard)]/20 bg-[var(--ink)] hover:border-blue-400'
                                                             }`}
                                                         >
-                                                            <img src={nft.image} alt={nft.name} className="w-full h-20 object-cover rounded-lg mb-2" />
+                                                            <img src={imageUrl()} alt={nft.name} className="w-full h-20 object-cover rounded-lg mb-2" />
                                                             <h5 className="text-xs font-semibold text-white truncate">{nft.name}</h5>
                                                             <p className="text-xs text-white/60">#{nft.serial}</p>
                                                         </div>
@@ -1009,7 +1015,7 @@ const createEntanglementTopic = async () => {
                                                 key={idx}
                                                 className="bg-[var(--ink)] rounded-xl p-4 border border-[color:rgba(244,211,94,0.2)]"
                                             >
-                                                <img src={nft.image} alt={nft.name} className="w-full h-32 object-cover rounded-lg mb-3" />
+                                                <img src={imageUrl()} alt={nft.name} className="w-full h-32 object-cover rounded-lg mb-3" />
                                                 <h5 className="font-semibold text-white truncate">{nft.name}</h5>
                                                 <p className="text-xs text-white/60 mb-1">Token: {nft.tokenId}</p>
                                                 <p className="text-xs text-white/60 mb-1">Serial: #{nft.serial}</p>
