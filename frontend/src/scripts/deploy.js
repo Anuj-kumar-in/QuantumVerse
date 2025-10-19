@@ -8,7 +8,6 @@ import {
     Hbar
 } from "@hashgraph/sdk"
 import  "dotenv/config"
-import fs from'fs'
 
 const client = Client.forTestnet();
 const adminPvk = PrivateKey.fromStringECDSA(process.env.PRIVATE_KEY)

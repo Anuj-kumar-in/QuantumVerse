@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
     TokenMintTransaction,
     TransferTransaction,
@@ -9,23 +9,21 @@ import {
     PrivateKey
 } from '@hashgraph/sdk'
 import { useWallet } from '../Context/WalletContext'
-import { Buffer } from 'buffer'
 
-// Configuration from your .env
+
 const PHYSICS_NFT_TOKEN_ID = import.meta.env.VITE_PHYSICS_TOKEN_ID || '0.0.7043803'
 const TREASURY_ID = import.meta.env.VITE_TREASURY_ID || '0.0.7043802'
 const SUPPLY_PRIVATE_KEY = import.meta.env.VITE_SUPPLY_PRIVATE_KEY || '3030020100300706052b8104000a04220420c7d06017ac53d4092eb48c5434fa832284239639d13b7806c1ad0c6bb1b74a5d'
 const SUPPLY_ID = import.meta.env.VITE_SUPPLY_ID || '0.0.7043801'
 
-// Pinata Configuration
-const PINATA_JWT = import.meta.env.VITE_PINATA_JWT || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiI2OTY2MmE1MS0wOWM5LTRlZDQtYjU0My0zNzkzZTNhZWE5ZmIiLCJlbWFpbCI6ImFrMjMwNTQ5M0BnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiZmExNTExYmJlMDg4NWM3NTM0NmMiLCJzY29wZWRLZXlTZWNyZXQiOiIyMjM4ZjEwNzFjMWMzOWY5MDUxNjU5MmQ4OGE1ZmY1NzBmODVlMGFlNmE0YzQyNjNjNmY2OWYzNGE4ODJhMzEzIiwiZXhwIjoxNzkxODI1MjQ3fQ.-8sKxFrG854kWLp7kRdot5NH4FBuF6j_6KTm-26PSVQ'
+
+const PINATA_JWT = import.meta.env.REACT_APP_PINATA_JWT || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiI2OTY2MmE1MS0wOWM5LTRlZDQtYjU0My0zNzkzZTNhZWE5ZmIiLCJlbWFpbCI6ImFrMjMwNTQ5M0BnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiYTFlZmMwNDdiZTA2YmM0ODJkODUiLCJzY29wZWRLZXlTZWNyZXQiOiIyOGViNTdkMjAwMDRlZTk4NDc2ZGQyMDY1ODAwYjViOGQ2ZmU0ZTg2NWU4MzdjMGFkMTY1OTU4MDE3YjhkOTE2IiwiZXhwIjoxNzkyMzUzNzIzfQ.ESr1PMpjaXRhdgONqJhiKhsWdi_zZrt6cUG_8riyb2k'
 
 const AUTHORIZED_MINTERS = [
     '0.0.6896538',
     '0.0.6962607'
 ]
 
-// Physics NFT Types
 export const PhysicsType = {
   GRAVITY: 0,
   TIME: 1,
@@ -73,7 +71,13 @@ const RARITY_COLORS = {
   [Rarity.MYTHIC]: 'text-red-400'
 }
 
-// IPFS Upload Function
+
+function imageUrl() {
+    const randomImageNum = Math.floor(Math.random() * 10) + 1
+    return `/image/${randomImageNum}.jpg`
+}
+
+
 const uploadToIPFS = async (nftData) => {
     try {
         const blob = new Blob([JSON.stringify(nftData, null, 2)], { type: 'application/json' })
@@ -99,8 +103,14 @@ const uploadToIPFS = async (nftData) => {
         })
 
         if (!response.ok) {
-            const errorData = await response.json()
-            throw new Error(`IPFS upload failed: ${errorData.error || response.statusText}`)
+            let errorData
+            try {
+                errorData = await response.json()
+            } catch (e) {
+                errorData = { error: 'Unknown error, could not parse response', status: response.status }
+            }
+            console.error('IPFS upload error details', errorData)
+            throw new Error(`IPFS upload failed: ${JSON.stringify(errorData)}`)
         }
 
         const result = await response.json()
@@ -164,7 +174,7 @@ const generatePhysicsNFT = (id) => {
         isActive: Math.random() > 0.5,
         name: `${PHYSICS_TYPE_NAMES[physicsType]} Force #${id}`,
         description: `A ${RARITY_NAMES[rarity]} ${PHYSICS_TYPE_NAMES[physicsType]} NFT with quantum properties`,
-        image: `https://via.placeholder.com/300x300/5c4033/eec329?text=${PHYSICS_TYPE_NAMES[physicsType].slice(0,2)}${id}`,
+        image: imageUrl(),
         price: (Math.random() * 50 + 10).toFixed(2),
         creator: `0.0.${Math.floor(Math.random() * 1000000) + 100000}`,
         createdAt: Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000,
@@ -174,57 +184,19 @@ const generatePhysicsNFT = (id) => {
     }
 }
 
-const Card = ({ children, className = '', variant = 'default', gradient = false }) => {
-    const baseClasses = 'rounded-xl border p-6 transition-all duration-300'
-    const variantClasses = {
-        default: 'bg-[var(--pane)] border-[color:rgba(238,195,41,0.2)]',
-        physics: 'bg-[var(--ink)] border-[color:rgba(238,195,41,0.3)]',
-        quantum: 'bg-[var(--ink)] border-[color:rgba(238,195,41,0.3)]',
-        ai: 'bg-[var(--ink)] border-[color:rgba(238,195,41,0.3)]',
-        carbon: 'bg-[var(--ink)] border-[color:rgba(238,195,41,0.3)]'
-    }
-    const gradientClass = gradient ? 'bg-gradient-to-br from-[var(--pane)] via-[var(--ink)] to-[var(--pane)]' : ''
-    return (
-        <div className={`${baseClasses} ${variantClasses[variant]} ${gradientClass} ${className}`}>
-            {children}
-        </div>
-    )
-}
-
-const Button = ({ children, onClick, variant = 'default', size = 'md', disabled = false, className = '' }) => {
-    const baseClasses = 'font-medium rounded-lg transition-all duration-300 focus:outline-none focus:ring-2'
-    const sizeClasses = { sm: 'px-3 py-1.5 text-sm', md: 'px-4 py-2 text-base', lg: 'px-6 py-3 text-lg' }
-    const variantClasses = {
-        default: 'bg-[var(--pane)] text-[var(--mustard)] hover:opacity-80 focus:ring-[var(--mustard)]',
-        physics: 'bg-[var(--mustard)] text-[var(--ink)] hover:opacity-80 focus:ring-[var(--mustard)]',
-        quantum: 'bg-[var(--mustard)] text-[var(--ink)] hover:opacity-80 focus:ring-[var(--mustard)]',
-        ai: 'bg-[var(--mustard)] text-[var(--ink)] hover:opacity-80 focus:ring-[var(--mustard)]',
-        carbon: 'bg-[var(--mustard)] text-[var(--ink)] hover:opacity-80 focus:ring-[var(--mustard)]',
-        secondary: 'bg-transparent border border-[color:rgba(238,195,41,0.5)] text-[var(--mustard)] hover:bg-[var(--pane)] focus:ring-[var(--mustard)]'
-    }
-    return (
-        <button onClick={onClick} disabled={disabled} className={`${baseClasses} ${sizeClasses[size]} ${variantClasses[variant]} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${className}`}>
-            {children}
-        </button>
-    )
-}
-
-const Loader = ({ size = 'md' }) => {
-    const sizeClasses = { sm: 'w-4 h-4', md: 'w-8 h-8', lg: 'w-12 h-12' }
-    return <div className={`${sizeClasses[size]} animate-spin rounded-full border-2 border-[var(--mustard)] border-t-transparent`}></div>
-}
-
 const NFTCard = ({ nft, onBuy, onView, isOwned, isConnected, loading }) => {
-     const [randomImageNum] = useState(() => Math.floor(Math.random() * 10) + 1);
     const rarityColor = RARITY_COLORS[nft.rarity] || 'text-gray-400'
     const physicsTypeName = PHYSICS_TYPE_NAMES[nft.physicsType] || 'Unknown'
     const rarityName = RARITY_NAMES[nft.rarity] || 'Unknown'
-    const imageUrl = `/image/${randomImageNum}.jpg`;
     
     return (
-        <Card variant="physics" className="hover:shadow-xl transition-shadow duration-300">
-            <div className="aspect-square mb-4 overflow-hidden rounded-lg bg-[var(--pane)]">
-                <img src={imageUrl} alt={nft.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+        <div className="bg-gradient-to-br from-[var(--pane)] to-[var(--ink)] rounded-2xl shadow-xl border border-gray-800 hover:border-[var(--mustard)]/50 transition-all duration-300 p-4 fade-in">
+            <div className="aspect-square mb-4 overflow-hidden rounded-lg">
+                <img 
+                    src={nft.image} 
+                    alt={nft.name} 
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" 
+                />
             </div>
             <div className="space-y-3">
                 <div className="flex justify-between items-start">
@@ -232,128 +204,86 @@ const NFTCard = ({ nft, onBuy, onView, isOwned, isConnected, loading }) => {
                     <span className={`text-sm font-medium ${rarityColor}`}>{rarityName}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                    <span className="text-white/70">{physicsTypeName}</span>
-                    <span className="text-[var(--mustard)]">Energy: {nft.energy}</span>
+                    <span className="text-gray-400">{physicsTypeName}</span>
+                    <span className="text-[var(--mustard)]">⚡ {nft.energy}</span>
                 </div>
-                <p className="text-white/70 text-sm line-clamp-2">{nft.description}</p>
-                <div className="space-y-1">
-                    <h4 className="text-sm font-medium text-[var(--mustard)]">Physics Properties:</h4>
-                    <div className="grid grid-cols-2 gap-1 text-xs">
-                        <div className="text-white/60">Magnitude: {nft.properties.magnitude}</div>
-                        <div className="text-white/60">Duration: {nft.properties.duration}s</div>
-                        <div className="text-white/60">Range: {nft.properties.range}m</div>
-                        <div className="text-white/60">Cooldown: {nft.properties.cooldown}s</div>
+                <p className="text-gray-400 text-sm line-clamp-2">{nft.description}</p>
+                <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-[var(--mustard)]">Properties:</h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-gray-400">
+                        <div>Magnitude: <span className="text-white">{nft.properties.magnitude}</span></div>
+                        <div>Duration: <span className="text-white">{nft.properties.duration}s</span></div>
+                        <div>Range: <span className="text-white">{nft.properties.range}m</span></div>
+                        <div>Cooldown: <span className="text-white">{nft.properties.cooldown}s</span></div>
                     </div>
                 </div>
-                <div className="pt-3 border-t border-[color:rgba(238,195,41,0.2)]">
+                <div className="pt-3 border-t border-gray-800">
                     <div className="flex justify-between items-center">
                         <div>
                             <div className="text-lg font-bold text-[var(--mustard)]">{nft.price} HBAR</div>
-                            <div className="text-xs text-white/60">Serial #{nft.serialNumber}</div>
+                            <div className="text-xs text-gray-500">Serial #{nft.serialNumber}</div>
                         </div>
                         <div className="flex gap-2">
-                            <Button variant="secondary" size="sm" onClick={() => onView(nft)}>View</Button>
+                            <button 
+                                onClick={() => onView(nft)}
+                                className="px-3 py-2 rounded-xl text-sm font-medium bg-[var(--ink)] border border-gray-700 text-gray-300 hover:border-[var(--mustard)]/50 transition-all"
+                            >
+                                View
+                            </button>
                             {!isOwned && nft.isForSale && (
-                                <Button variant="physics" size="sm" onClick={() => onBuy(nft)} disabled={!isConnected || loading}>
-                                    {loading ? <Loader size="sm" /> : 'Buy'}
-                                </Button>
+                                <button 
+                                    onClick={() => onBuy(nft)} 
+                                    disabled={!isConnected || loading}
+                                    className="px-3 py-2 rounded-xl text-sm font-medium bg-gradient-to-r from-[var(--mustard)] to-yellow-600 text-[var(--ink)] hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {loading ? '...' : 'Buy'}
+                                </button>
                             )}
-                            {isOwned && (<Button variant="quantum" size="sm" disabled>Owned</Button>)}
+                            {isOwned && (
+                                <button 
+                                    disabled
+                                    className="px-3 py-2 rounded-xl text-sm font-medium bg-green-500/20 text-green-400 border border-green-500/30 cursor-not-allowed"
+                                >
+                                    Owned
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
-        </Card>
-    )
-}
-
-const FilterPanel = ({ filters, onFilterChange, nftCount }) => (
-    <Card variant="default" className="mb-6">
-        <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-[var(--mustard)]">Filters ({nftCount} items)</h3>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-white/80 mb-2">Price Range (HBAR)</label>
-                    <div className="flex gap-2">
-                        <input type="number" placeholder="Min" value={filters.priceMin} onChange={(e) => onFilterChange({ priceMin: e.target.value })} className="w-full px-3 py-1 bg-[var(--ink)] border border-[color:rgba(238,195,41,0.3)] rounded text-[var(--mustard)] text-sm" />
-                        <input type="number" placeholder="Max" value={filters.priceMax} onChange={(e) => onFilterChange({ priceMax: e.target.value })} className="w-full px-3 py-1 bg-[var(--ink)] border border-[color:rgba(238,195,41,0.3)] rounded text-[var(--mustard)] text-sm" />
-                    </div>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-white/80 mb-2">Physics Type</label>
-                    <select value={filters.physicsType || ''} onChange={(e) => onFilterChange({ physicsType: e.target.value })} className="w-full px-3 py-1 bg-[var(--ink)] border border-[color:rgba(238,195,41,0.3)] rounded text-[var(--mustard)] text-sm">
-                        <option value="">All Types</option>
-                        {Object.entries(PHYSICS_TYPE_NAMES).map(([key, name]) => (
-                            <option key={key} value={key}>{name}</option>
-                        ))}
-                    </select>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-white/80 mb-2">Rarity</label>
-                    <select value={filters.rarity || ''} onChange={(e) => onFilterChange({ rarity: e.target.value })} className="w-full px-3 py-1 bg-[var(--ink)] border border-[color:rgba(238,195,41,0.3)] rounded text-[var(--mustard)] text-sm">
-                        <option value="">All Rarities</option>
-                        {Object.entries(RARITY_NAMES).map(([key, name]) => (
-                            <option key={key} value={key}>{name}</option>
-                        ))}
-                    </select>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-white/80 mb-2">Availability</label>
-                    <select value={filters.availability} onChange={(e) => onFilterChange({ availability: e.target.value })} className="w-full px-3 py-1 bg-[var(--ink)] border border-[color:rgba(238,195,41,0.3)] rounded text-[var(--mustard)] text-sm">
-                        <option value="">All</option>
-                        <option value="forSale">For Sale</option>
-                        <option value="owned">Owned</option>
-                    </select>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-white/80 mb-2">Sort By</label>
-                    <select value={filters.sortBy} onChange={(e) => onFilterChange({ sortBy: e.target.value })} className="w-full px-3 py-1 bg-[var(--ink)] border border-[color:rgba(238,195,41,0.3)] rounded text-[var(--mustard)] text-sm">
-                        <option value="newest">Newest</option>
-                        <option value="oldest">Oldest</option>
-                        <option value="priceHigh">Price: High to Low</option>
-                        <option value="priceLow">Price: Low to High</option>
-                        <option value="rarity">Rarity</option>
-                        <option value="energy">Energy</option>
-                    </select>
-                </div>
-            </div>
-            <div>
-                <input type="text" placeholder="Search NFTs..." value={filters.search} onChange={(e) => onFilterChange({ search: e.target.value })} className="w-full px-4 py-2 bg-[var(--ink)] border border-[color:rgba(238,195,41,0.3)] rounded text-[var(--mustard)]" />
-            </div>
-        </div>
-    </Card>
-)
-
-const Dashboard = ({ isConnected, connectedAccount, nfts, userNFTs, onGoTo }) => {
-    const stats = {
-        total: nfts.length,
-        forSale: nfts.filter(n => n.isForSale).length,
-        owned: userNFTs.length,
-        floor: nfts.filter(n => n.isForSale).reduce((m, n) => Math.min(m, parseFloat(n.price)), Infinity)
-    }
-    return (
-        <div className="space-y-6">
-            <Card variant="physics" gradient className="text-center">
-                <h2 className="text-3xl font-bold text-[var(--mustard)] mb-2">QuantumVerse Dashboard</h2>
-                <p className="text-white/80">{isConnected ? `Connected: ${connectedAccount}` : 'Connect wallet to see personalized stats'}</p>
-            </Card>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card variant="physics" className="text-center"><div className="text-2xl font-bold text-[var(--mustard)]">{stats.total}</div><div className="text-sm text-white/60">Total NFTs</div></Card>
-                <Card variant="quantum" className="text-center"><div className="text-2xl font-bold text-[var(--mustard)]">{stats.forSale}</div><div className="text-sm text-white/60">For Sale</div></Card>
-                <Card variant="ai" className="text-center"><div className="text-2xl font-bold text-[var(--mustard)]">{stats.owned}</div><div className="text-sm text-white/60">Owned</div></Card>
-                <Card variant="default" className="text-center"><div className="text-2xl font-bold text-[var(--mustard)]">{stats.floor === Infinity ? '-' : stats.floor}</div><div className="text-sm text-white/60">Floor (HBAR)</div></Card>
-            </div>
-            <div className="flex gap-3">
-                <Button variant="physics" onClick={() => onGoTo('shop')}>Go to Shop</Button>
-                <Button variant="quantum" onClick={() => onGoTo('mint')}>Mint NFT</Button>
-                <Button variant="secondary" onClick={() => onGoTo('owned')}>Owned NFTs</Button>
-            </div>
         </div>
     )
 }
 
-const MintNFT = ({ connectedAccount, isConnected, onMinted }) => {
-    const authorized = isConnected && AUTHORIZED_MINTERS.includes(connectedAccount)
+export const Marketplace = () => {
+    const { 
+        isConnected, 
+        connectedAccount, 
+        getSigner, 
+        connectWallet, 
+        disconnectWallet,
+        connectionState,
+        sendHbar 
+    } = useWallet()
+
+    const [activeTab, setActiveTab] = useState('dashboard')
+    const [nfts, setNfts] = useState([])
+    const [userNFTs, setUserNFTs] = useState([])
+    const [txLoading, setTxLoading] = useState(false)
+    const [showModal, setShowModal] = useState(false)
+    const [selectedNFT, setSelectedNFT] = useState(null)
+    
+    const [filters, setFilters] = useState({
+        priceMin: '',
+        priceMax: '',
+        rarity: '',
+        physicsType: '',
+        availability: '',
+        sortBy: 'newest',
+        search: ''
+    })
+
+    // Mint state
     const [name, setName] = useState('')
     const [description, setDescription] = useState('')
     const [physicsType, setPhysicsType] = useState(PhysicsType.GRAVITY)
@@ -368,7 +298,95 @@ const MintNFT = ({ connectedAccount, isConnected, onMinted }) => {
     const [isMinting, setIsMinting] = useState(false)
     const [mintStatus, setMintStatus] = useState('')
 
-    const costHBAR = 10
+    const tabs = [
+        { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+        { id: 'shop', label: 'Shop', icon: '🛒' },
+        { id: 'owned', label: 'My NFTs', icon: '🎨' },
+        { id: 'mint', label: 'Mint NFT', icon: '⚡' }
+    ]
+
+    useEffect(() => {
+        const generated = Array.from({ length: 20 }, (_, i) => generatePhysicsNFT(i + 1))
+        setNfts(generated)
+    }, [])
+
+    useEffect(() => {
+        if (isConnected && connectedAccount) {
+            const owned = nfts.filter(n => n.owner === connectedAccount).map(n => n.id)
+            setUserNFTs(owned)
+        }
+    }, [isConnected, connectedAccount, nfts])
+
+    const handleWalletAction = async () => {
+        try {
+            if (isConnected) {
+                disconnectWallet()
+            } else {
+                await connectWallet()
+            }
+        } catch (error) {
+            console.error("Wallet action failed:", error)
+            alert("Failed to connect wallet. Please try again.")
+        }
+    }
+
+    const formatAccountId = (accountId) => {
+        if (!accountId) return ''
+        return `${accountId.slice(0, 8)}...${accountId.slice(-4)}`
+    }
+
+    const getWalletButtonText = () => {
+        if (connectionState === 'Connecting') return 'Connecting...'
+        if (isConnected) return `Disconnect (${formatAccountId(connectedAccount)})`
+        return 'Connect Hedera Wallet'
+    }
+
+    const getWalletButtonClass = () => {
+        const baseClass = "px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+
+        if (connectionState === 'Connecting') {
+            return `${baseClass} bg-yellow-500 text-white cursor-not-allowed`
+        }
+
+        if (isConnected) {
+            return `${baseClass} bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700`
+        }
+
+        return `${baseClass} bg-gradient-to-r from-[var(--mustard)] to-yellow-600 text-[var(--ink)] hover:opacity-90`
+    }
+
+    const handleFilterChange = (updates) => {
+        setFilters(prev => ({ ...prev, ...updates }))
+    }
+
+    const buyNFT = async (nft) => {
+        if (!isConnected) {
+            alert('Please connect your wallet')
+            return
+        }
+        
+        setTxLoading(true)
+        try {
+            await new Promise(resolve => setTimeout(resolve, 2000))
+            
+            setUserNFTs(prev => [...prev, nft.id])
+            setNfts(prev => prev.map(n => 
+                n.id === nft.id ? { ...n, owner: connectedAccount, isForSale: false } : n
+            ))
+            
+            alert(`Successfully purchased ${nft.name} for ${nft.price} HBAR!`)
+        } catch (error) {
+            console.error('Purchase failed:', error)
+            alert('Purchase failed: ' + error.message)
+        } finally {
+            setTxLoading(false)
+        }
+    }
+
+    const viewNFT = (nft) => {
+        setSelectedNFT(nft)
+        setShowModal(true)
+    }
 
     const createMetadata = async (physicsType, rarity, customProperties) => {
         setMintStatus('Generating properties...')
@@ -383,11 +401,10 @@ const MintNFT = ({ connectedAccount, isConnected, onMinted }) => {
             compatibility: defaultProperties.compatibility
         }
         
-        // HIP-412 compliant metadata structure
         const nftData = {
             name,
             description,
-            image: `https://via.placeholder.com/512x512/5c4033/eec329?text=${PHYSICS_TYPE_NAMES[physicsType]}`,
+            image: imageUrl(),
             type: "image/png",
             format: "HIP412@2.0.0",
             properties: {
@@ -397,45 +414,14 @@ const MintNFT = ({ connectedAccount, isConnected, onMinted }) => {
                 isActive: true
             },
             attributes: [
-                {
-                    trait_type: "Physics Type",
-                    value: PHYSICS_TYPE_NAMES[physicsType]
-                },
-                {
-                    trait_type: "Rarity",
-                    value: RARITY_NAMES[rarity]
-                },
-                {
-                    trait_type: "Magnitude",
-                    value: finalProperties.magnitude,
-                    display_type: "number"
-                },
-                {
-                    trait_type: "Duration",
-                    value: finalProperties.duration,
-                    display_type: "number",
-                    max_value: 100
-                },
-                {
-                    trait_type: "Range",
-                    value: finalProperties.range,
-                    display_type: "number",
-                    max_value: 200
-                },
-                {
-                    trait_type: "Cooldown",
-                    value: finalProperties.cooldown,
-                    display_type: "number"
-                },
-                {
-                    trait_type: "Energy Cost",
-                    value: finalProperties.energyCost,
-                    display_type: "number"
-                },
-                {
-                    trait_type: "Compatibility",
-                    value: finalProperties.compatibility.join(', ')
-                }
+                { trait_type: "Physics Type", value: PHYSICS_TYPE_NAMES[physicsType] },
+                { trait_type: "Rarity", value: RARITY_NAMES[rarity] },
+                { trait_type: "Magnitude", value: finalProperties.magnitude, display_type: "number" },
+                { trait_type: "Duration", value: finalProperties.duration, display_type: "number", max_value: 100 },
+                { trait_type: "Range", value: finalProperties.range, display_type: "number", max_value: 200 },
+                { trait_type: "Cooldown", value: finalProperties.cooldown, display_type: "number" },
+                { trait_type: "Energy Cost", value: finalProperties.energyCost, display_type: "number" },
+                { trait_type: "Compatibility", value: finalProperties.compatibility.join(', ') }
             ],
             localization: {
                 uri: "",
@@ -445,19 +431,18 @@ const MintNFT = ({ connectedAccount, isConnected, onMinted }) => {
         }
         
         setMintStatus('Uploading to IPFS...')
-        
-        // Upload to IPFS
         const ipfsCID = await uploadToIPFS(nftData)
         const metadataURI = `ipfs://${ipfsCID}`
         
         console.log('Metadata URI:', metadataURI)
         setMintStatus('IPFS upload complete!')
         
-        // Return URI (under 100 bytes)
         return Buffer.from(metadataURI)
     }
 
     const handleMint = async () => {
+        const authorized = isConnected && AUTHORIZED_MINTERS.includes(connectedAccount)
+        
         if (!authorized) return alert('Not authorized to mint')
         if (!name || !description) return alert('Name and description required')
         
@@ -465,18 +450,15 @@ const MintNFT = ({ connectedAccount, isConnected, onMinted }) => {
         setMintStatus('Starting mint process...')
         
         try {
-            // Step 1: Process payment from user
             setMintStatus('Processing payment...')
-            const receiptPay = await sendHbarOnChain(connectedAccount, TREASURY_ID, costHBAR)
+            const receiptPay = await sendHbar(TREASURY_ID, 10)
             if (receiptPay.status && receiptPay.status._code !== 22) {
                 throw new Error('Payment failed')
             }
             setMintStatus('Payment confirmed!')
 
-            // Step 2: Create metadata and upload to IPFS
             const metadata = await createMetadata(physicsType, rarity, customProperties)
 
-            // Step 3: Mint NFT using supply key
             setMintStatus('Minting NFT on Hedera...')
             const client = Client.forTestnet()
             const supplyKey = PrivateKey.fromStringDer(SUPPLY_PRIVATE_KEY)
@@ -491,7 +473,6 @@ const MintNFT = ({ connectedAccount, isConnected, onMinted }) => {
             const serialNumber = mintRcpt.serials[0].toString()
             setMintStatus(`NFT Minted! Serial: ${serialNumber}`)
 
-            // Step 4: Transfer NFT to buyer
             setMintStatus('Transferring NFT to your wallet...')
             await new TransferTransaction()
                 .addNftTransfer(
@@ -503,16 +484,7 @@ const MintNFT = ({ connectedAccount, isConnected, onMinted }) => {
                 .execute(client)
 
             setMintStatus('Transfer complete!')
-
-            onMinted && onMinted({ 
-                serial: serialNumber, 
-                name,
-                physicsType,
-                rarity,
-                properties: customProperties
-            })
-            
-            alert(`✅ Mint Success! Serial: ${serialNumber}\nCheck your wallet for the NFT!`)
+            alert(`✅ Mint Success! Serial: ${serialNumber}\\nCheck your wallet for the NFT!`)
             
             // Reset form
             setName('')
@@ -537,428 +509,675 @@ const MintNFT = ({ connectedAccount, isConnected, onMinted }) => {
         }
     }
 
-    const { sendHbar: sendHbarHook } = useWallet()
-    const sendHbarOnChain = async (fromId, toId, amount) => {
-        return await sendHbarHook(toId, amount)
+    let displayedNFTs = [...nfts]
+
+    if (filters.search) {
+        displayedNFTs = displayedNFTs.filter(nft => 
+            nft.name.toLowerCase().includes(filters.search.toLowerCase()) ||
+            nft.description.toLowerCase().includes(filters.search.toLowerCase())
+        )
     }
 
-    if (!isConnected) return <Card variant="default" className="text-center py-10 text-[var(--mustard)]">Connect wallet to mint.</Card>
-    if (!authorized) return <Card variant="default" className="text-center py-10 text-[var(--mustard)]">You are not authorized to mint. Authorized: {AUTHORIZED_MINTERS.join(', ')}</Card>
-
-    return (
-        <Card variant="default" className="space-y-6">
-            <h3 className="text-xl font-bold text-[var(--mustard)]">Mint Physics NFT (10 HBAR)</h3>
-            
-            {mintStatus && (
-                <div className="bg-[var(--mustard)]/10 border border-[var(--mustard)]/30 rounded-lg p-3 text-center">
-                    <p className="text-[var(--mustard)] text-sm font-medium">{mintStatus}</p>
-                </div>
-            )}
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-white/80 mb-2">Name *</label>
-                    <input 
-                        value={name} 
-                        onChange={e => setName(e.target.value)} 
-                        placeholder="NFT Name" 
-                        className="w-full px-3 py-2 bg-[var(--ink)] border border-[color:rgba(238,195,41,0.3)] rounded text-[var(--mustard)]" 
-                        disabled={isMinting}
-                    />
-                </div>
-                
-                <div>
-                    <label className="block text-sm font-medium text-white/80 mb-2">Physics Type</label>
-                    <select 
-                        value={physicsType} 
-                        onChange={e => setPhysicsType(parseInt(e.target.value))} 
-                        className="w-full px-3 py-2 bg-[var(--ink)] border border-[color:rgba(238,195,41,0.3)] rounded text-[var(--mustard)]"
-                        disabled={isMinting}
-                    >
-                        {Object.entries(PHYSICS_TYPE_NAMES).map(([key, name]) => (
-                            <option key={key} value={key}>{name}</option>
-                        ))}
-                    </select>
-                </div>
-                
-                <div>
-                    <label className="block text-sm font-medium text-white/80 mb-2">Rarity</label>
-                    <select 
-                        value={rarity} 
-                        onChange={e => setRarity(parseInt(e.target.value))} 
-                        className="w-full px-3 py-2 bg-[var(--ink)] border border-[color:rgba(238,195,41,0.3)] rounded text-[var(--mustard)]"
-                        disabled={isMinting}
-                    >
-                        {Object.entries(RARITY_NAMES).map(([key, name]) => (
-                            <option key={key} value={key}>{name}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
-
-            <div>
-                <label className="block text-sm font-medium text-white/80 mb-2">Description *</label>
-                <textarea 
-                    value={description} 
-                    onChange={e => setDescription(e.target.value)} 
-                    placeholder="Description" 
-                    rows={3} 
-                    className="w-full px-3 py-2 bg-[var(--ink)] border border-[color:rgba(238,195,41,0.3)] rounded text-[var(--mustard)]" 
-                    disabled={isMinting}
-                />
-            </div>
-
-            <div>
-                <h4 className="text-lg font-medium text-[var(--mustard)] mb-3">Custom Physics Properties (Optional)</h4>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div>
-                        <label className="block text-sm text-white/70 mb-1">Magnitude</label>
-                        <input 
-                            type="number" 
-                            value={customProperties.magnitude} 
-                            onChange={e => setCustomProperties(prev => ({...prev, magnitude: e.target.value}))} 
-                            placeholder="Auto-generated" 
-                            className="w-full px-3 py-2 bg-[var(--ink)] border border-[color:rgba(238,195,41,0.3)] rounded text-[var(--mustard)] text-sm" 
-                            disabled={isMinting}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm text-white/70 mb-1">Duration (s)</label>
-                        <input 
-                            type="number" 
-                            value={customProperties.duration} 
-                            onChange={e => setCustomProperties(prev => ({...prev, duration: e.target.value}))} 
-                            placeholder="Auto-generated" 
-                            className="w-full px-3 py-2 bg-[var(--ink)] border border-[color:rgba(238,195,41,0.3)] rounded text-[var(--mustard)] text-sm" 
-                            disabled={isMinting}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm text-white/70 mb-1">Range (m)</label>
-                        <input 
-                            type="number" 
-                            value={customProperties.range} 
-                            onChange={e => setCustomProperties(prev => ({...prev, range: e.target.value}))} 
-                            placeholder="Auto-generated" 
-                            className="w-full px-3 py-2 bg-[var(--ink)] border border-[color:rgba(238,195,41,0.3)] rounded text-[var(--mustard)] text-sm" 
-                            disabled={isMinting}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm text-white/70 mb-1">Cooldown (s)</label>
-                        <input 
-                            type="number" 
-                            value={customProperties.cooldown} 
-                            onChange={e => setCustomProperties(prev => ({...prev, cooldown: e.target.value}))} 
-                            placeholder="Auto-generated" 
-                            className="w-full px-3 py-2 bg-[var(--ink)] border border-[color:rgba(238,195,41,0.3)] rounded text-[var(--mustard)] text-sm" 
-                            disabled={isMinting}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm text-white/70 mb-1">Energy Cost</label>
-                        <input 
-                            type="number" 
-                            value={customProperties.energyCost} 
-                            onChange={e => setCustomProperties(prev => ({...prev, energyCost: e.target.value}))} 
-                            placeholder="Auto-generated" 
-                            className="w-full px-3 py-2 bg-[var(--ink)] border border-[color:rgba(238,195,41,0.3)] rounded text-[var(--mustard)] text-sm" 
-                            disabled={isMinting}
-                        />
-                    </div>
-                </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-4 border-t border-[color:rgba(238,195,41,0.2)]">
-                <div className="text-white/80">Cost: <span className="text-[var(--mustard)] font-bold">{costHBAR} HBAR</span></div>
-                <Button variant="physics" onClick={handleMint} disabled={isMinting || !name || !description}>
-                    {isMinting ? (
-                        <div className="flex items-center gap-2">
-                            <Loader size="sm" />
-                            <span>Minting...</span>
-                        </div>
-                    ) : 'Mint NFT'}
-                </Button>
-            </div>
-        </Card>
-    )
-}
-
-const OwnedNFTs = ({ nfts, connectedAccount }) => {
-    const owned = nfts.filter(n => n.owner === connectedAccount)
-    return (
-        <div className="space-y-4">
-            <h3 className="text-2xl font-bold text-[var(--mustard)]">Owned Physics NFTs</h3>
-            {owned.length === 0 ? (
-                <Card variant="default" className="text-white/70 text-center py-12">
-                    <p className="text-lg mb-4">No owned NFTs yet.</p>
-                    <p className="text-sm text-white/50">Mint or buy your first Physics NFT to get started!</p>
-                </Card>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {owned.map(n => <NFTCard key={n.id} nft={n} onBuy={() => {}} onView={() => {}} isOwned={true} isConnected={true} loading={false} />)}
-                </div>
-            )}
-        </div>
-    )
-}
-
-export const Marketplace = () => {
-    const { isConnected, connectedAccount, getSigner, connectWallet, sendHbar } = useWallet()
-
-    const [section, setSection] = useState('shop')
-    const [isLoading, setIsLoading] = useState(true)
-    const [nfts, setNfts] = useState([])
-    const [userNFTs, setUserNFTs] = useState([])
-    const [error, setError] = useState(null)
-    const [txLoading, setTxLoading] = useState(false)
-    const [selectedNFT, setSelectedNFT] = useState(null)
-    const [showModal, setShowModal] = useState(false)
-
-    const [filters, setFilters] = useState({ 
-        priceMin: '', 
-        priceMax: '', 
-        rarity: '', 
-        physicsType: '',
-        availability: '', 
-        sortBy: 'newest', 
-        search: '' 
-    })
-
-    useEffect(() => {
-        const load = async () => {
-            setIsLoading(true)
-            try {
-                await new Promise(r => setTimeout(r, 800))
-                const mock = Array.from({ length: 24 }, (_, i) => generatePhysicsNFT(i + 1))
-                setNfts(mock)
-                if (isConnected && connectedAccount) {
-                    const owned = mock.filter(() => Math.random() > 0.8).slice(0, 3)
-                    setUserNFTs(owned.map(n => n.id))
-                }
-            } catch (e) {
-                console.error(e)
-                setError('Failed to load marketplace. Please try again.')
-            } finally {
-                setIsLoading(false)
-            }
-        }
-        load()
-    }, [isConnected, connectedAccount])
-
-    const filteredNFTs = useCallback(() => {
-        let filtered = [...nfts]
-        if (filters.priceMin) filtered = filtered.filter(n => parseFloat(n.price) >= parseFloat(filters.priceMin))
-        if (filters.priceMax) filtered = filtered.filter(n => parseFloat(n.price) <= parseFloat(filters.priceMax))
-        if (filters.rarity) filtered = filtered.filter(n => n.rarity.toString() === filters.rarity)
-        if (filters.physicsType) filtered = filtered.filter(n => n.physicsType.toString() === filters.physicsType)
-        if (filters.availability === 'forSale') filtered = filtered.filter(n => n.isForSale && !userNFTs.includes(n.id))
-        if (filters.availability === 'owned') filtered = filtered.filter(n => userNFTs.includes(n.id))
-        if (filters.search) filtered = filtered.filter(n => n.name.toLowerCase().includes(filters.search.toLowerCase()) || n.description.toLowerCase().includes(filters.search.toLowerCase()))
-        
-        switch (filters.sortBy) {
-            case 'priceHigh': filtered.sort((a, b) => parseFloat(b.price) - parseFloat(a.price)); break
-            case 'priceLow': filtered.sort((a, b) => parseFloat(a.price) - parseFloat(b.price)); break
-            case 'oldest': filtered.sort((a, b) => a.createdAt - b.createdAt); break
-            case 'rarity': filtered.sort((a, b) => b.rarity - a.rarity); break
-            case 'energy': filtered.sort((a, b) => b.energy - a.energy); break
-            default: filtered.sort((a, b) => b.createdAt - a.createdAt)
-        }
-        return filtered
-    }, [nfts, filters, userNFTs])
-
-    const handleFilterChange = (nf) => setFilters(prev => ({ ...prev, ...nf }))
-
-    const buyNFT = async (nft) => {
-        if (!isConnected) { await connectWallet(); return }
-        setTxLoading(true)
-        try {
-            await sendHbar(nft.owner, parseFloat(nft.price))
-            setUserNFTs(prev => [...prev, nft.id])
-            setNfts(prev => prev.map(n => n.id === nft.id ? { ...n, isForSale: false, owner: connectedAccount } : n))
-            alert(`Purchased ${nft.name} for ${nft.price} HBAR`)
-        } catch (e) {
-            console.error(e); alert(`Purchase failed: ${e.message}`)
-        } finally { setTxLoading(false) }
+    if (filters.priceMin) {
+        displayedNFTs = displayedNFTs.filter(nft => parseFloat(nft.price) >= parseFloat(filters.priceMin))
     }
 
-    const viewNFT = (nft) => { setSelectedNFT(nft); setShowModal(true) }
+    if (filters.priceMax) {
+        displayedNFTs = displayedNFTs.filter(nft => parseFloat(nft.price) <= parseFloat(filters.priceMax))
+    }
 
-    const onMinted = ({ serial, name, physicsType, rarity, properties }) => {
-        const fresh = generatePhysicsNFT(nfts.length + 1)
-        fresh.name = name || fresh.name
-        fresh.physicsType = physicsType
-        fresh.rarity = rarity
-        fresh.properties = { ...fresh.properties, ...properties }
-        fresh.owner = connectedAccount
-        fresh.isForSale = false
-        fresh.serialNumber = serial
-        setNfts(prev => [fresh, ...prev])
-        setUserNFTs(prev => [...prev, fresh.id])
+    if (filters.physicsType) {
+        displayedNFTs = displayedNFTs.filter(nft => nft.physicsType === parseInt(filters.physicsType))
+    }
+
+    if (filters.rarity) {
+        displayedNFTs = displayedNFTs.filter(nft => nft.rarity === parseInt(filters.rarity))
+    }
+
+    if (filters.availability === 'forSale') {
+        displayedNFTs = displayedNFTs.filter(nft => nft.isForSale)
+    } else if (filters.availability === 'owned') {
+        displayedNFTs = displayedNFTs.filter(nft => userNFTs.includes(nft.id))
+    }
+
+    // Sort
+    switch (filters.sortBy) {
+        case 'newest':
+            displayedNFTs.sort((a, b) => b.createdAt - a.createdAt)
+            break
+        case 'oldest':
+            displayedNFTs.sort((a, b) => a.createdAt - b.createdAt)
+            break
+        case 'priceHigh':
+            displayedNFTs.sort((a, b) => parseFloat(b.price) - parseFloat(a.price))
+            break
+        case 'priceLow':
+            displayedNFTs.sort((a, b) => parseFloat(a.price) - parseFloat(b.price))
+            break
+        case 'rarity':
+            displayedNFTs.sort((a, b) => b.rarity - a.rarity)
+            break
+        case 'energy':
+            displayedNFTs.sort((a, b) => b.energy - a.energy)
+            break
     }
 
     const stats = {
         totalNFTs: nfts.length,
         forSale: nfts.filter(n => n.isForSale).length,
         owned: userNFTs.length,
-        totalValue: nfts.reduce((s, n) => s + parseFloat(n.price), 0).toFixed(1),
-        floorPrice: nfts.filter(n => n.isForSale).reduce((m, n) => Math.min(m, parseFloat(n.price)), Infinity).toFixed(1)
+        floorPrice: nfts.filter(n => n.isForSale).reduce((m, n) => Math.min(m, parseFloat(n.price)), Infinity)
     }
-
-    const displayedNFTs = filteredNFTs()
-
-    if (isLoading) return (
-        <div className="min-h-screen bg-[var(--ink)] text-white p-8 flex items-center justify-center">
-            <div className="text-center"><Loader size="lg" /><p className="mt-4 text-white/60">Loading QuantumVerse Marketplace...</p></div>
-        </div>
-    )
-
-    if (error) return (
-        <div className="min-h-screen bg-[var(--ink)] text-white p-8 flex items-center justify-center">
-            <Card variant="quantum" className="text-center p-8">
-                <div className="text-red-400 text-lg mb-4">⚠️ Error</div>
-                <p className="text-white/80 mb-4">{error}</p>
-                <Button variant="physics" onClick={() => window.location.reload()}>Retry</Button>
-            </Card>
-        </div>
-    )
 
     return (
         <>
             <style>{`
-                        :root {
-            --ink: #0a0a0f;           /* Very dark blue-black */
-            --pane: #1a1a2e;         /* Dark blue-gray */
-            --mustard: #ffd700;      /* Gold accent */
-        }
-
-
-                @keyframes fade {
-                    from { opacity:.3; transform: translateY(4px); }
-                    to   { opacity:1;  transform: translateY(0); }
+                :root {
+                    --ink: #0a0a0f;
+                    --pane: #1a1a2e;
+                    --mustard: #ffd700;
                 }
-                .fade-in { animation: fade .25s ease; }
+
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                
+                .fade-in {
+                    animation: fadeIn 0.4s ease-out;
+                }
+                
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: rgba(0, 0, 0, 0.2);
+                    border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: var(--mustard);
+                    border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #d4a942;
+                }
             `}</style>
-
-            <div className="min-h-screen bg-[var(--ink)] text-white">
-                <div className="bg-gradient-to-r from-[var(--pane)] via-[var(--ink)] to-[var(--pane)] p-8">
-                    <div className="max-w-7xl mx-auto">
-                        <div className="text-center mb-8">
-                            <h1 className="text-5xl font-bold mb-4 text-[var(--mustard)]">Physics<span className="text-yellow-300"> NFT's</span></h1>
-                            <p className="text-xl text-white/80 max-w-3xl mx-auto">Trade physics properties and quantum assets on Hedera Hashgraph</p>
-                        </div>
-                        <div className="flex flex-wrap justify-center gap-[3vw] mb-6">
-                            <Button variant={section==='dashboard'?'physics':'secondary'} onClick={()=>setSection('dashboard')}>Dashboard</Button>
-                            <Button variant={section==='shop'?'physics':'secondary'} onClick={()=>setSection('shop')}>Shop</Button>
-                            <Button variant={section==='owned'?'physics':'secondary'} onClick={()=>setSection('owned')}>Owned</Button>
-                            <Button variant={section==='mint'?'quantum':'secondary'} onClick={()=>setSection('mint')}>Mint NFT</Button>
-                        </div>
-                        <div className="flex justify-center mb-2">
-                            {isConnected ? (
-                                <div className="bg-[var(--mustard)]/20 border border-[color:rgba(238,195,41,0.3)] rounded-lg px-4 py-2">
-                                    <span className="text-[var(--mustard)]">Connected: {connectedAccount?.slice(0,8)}...{connectedAccount?.slice(-4)}</span>
+            
+            <div className="min-h-screen bg-gradient-to-br from-[var(--ink)] via-gray-900 to-[var(--ink)] text-white">
+                <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 space-y-6">
+                    
+                    {/* Hero Banner */}
+                    <section className="relative bg-gradient-to-br from-[var(--pane)] via-[var(--ink)] to-[var(--pane)] rounded-3xl p-8 md:p-10 shadow-2xl border border-gray-800 overflow-hidden fade-in">
+                        <div className="absolute top-0 right-0 w-96 h-96 bg-[var(--mustard)] opacity-5 rounded-full blur-3xl"></div>
+                        <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500 opacity-5 rounded-full blur-3xl"></div>
+                        
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-12 h-12 bg-gradient-to-br from-[var(--mustard)] to-yellow-600 rounded-2xl flex items-center justify-center text-2xl shadow-lg">
+                                    ⚛️
                                 </div>
-                            ) : (
-                                <Button variant="physics" size="lg" onClick={connectWallet}>Connect Wallet</Button>
-                            )}
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                            <Card variant="physics" className="text-center"><div className="text-2xl font-bold text-[var(--mustard)]">{stats.totalNFTs}</div><div className="text-sm text-white/60">Total NFTs</div></Card>
-                            <Card variant="quantum" className="text-center"><div className="text-2xl font-bold text-[var(--mustard)]">{stats.forSale}</div><div className="text-sm text-white/60">For Sale</div></Card>
-                            <Card variant="ai" className="text-center"><div className="text-2xl font-bold text-[var(--mustard)]">{stats.owned}</div><div className="text-sm text-white/60">Owned</div></Card>
-                            <Card variant="carbon" className="text-center"><div className="text-2xl font-bold text-[var(--mustard)]">{stats.totalValue}</div><div className="text-sm text-white/60">Total Value (HBAR)</div></Card>
-                            <Card variant="carbon" className="text-center"><div className="text-2xl font-bold text-[var(--mustard)]">{stats.floorPrice}</div><div className="text-sm text-white/60">Floor Price (HBAR)</div></Card>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="max-w-7xl mx-auto p-8">
-                    {section === 'dashboard' && (
-                        <Dashboard isConnected={isConnected} connectedAccount={connectedAccount} nfts={nfts} userNFTs={userNFTs} onGoTo={setSection} />
-                    )}
-
-                    {section === 'mint' && (
-                        <MintNFT isConnected={isConnected} connectedAccount={connectedAccount} onMinted={onMinted} />
-                    )}
-
-                    {section === 'owned' && (
-                        <OwnedNFTs nfts={nfts} connectedAccount={connectedAccount} />
-                    )}
-
-                    {section === 'shop' && (
-                        <>
-                            <FilterPanel filters={filters} onFilterChange={handleFilterChange} nftCount={displayedNFTs.length} />
-                            {displayedNFTs.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                    {displayedNFTs.map((nft) => (
-                                        <NFTCard key={nft.id} nft={nft} onBuy={buyNFT} onView={viewNFT} isOwned={userNFTs.includes(nft.id)} isConnected={isConnected} loading={txLoading} />
-                                    ))}
+                                <div>
+                                    <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-[var(--mustard)] to-yellow-600 bg-clip-text text-transparent">
+                                        Physics NFT Marketplace
+                                    </h1>
+                                    <p className="text-gray-400 text-sm mt-1">
+                                        Powered by Hedera Blockchain & Quantum Properties
+                                    </p>
                                 </div>
-                            ) : (
-                                <Card variant="default" className="text-center py-12">
-                                    <div className="text-white/60 text-lg">No NFTs found matching your criteria</div>
-                                    <Button variant="secondary" className="mt-4" onClick={() => setFilters({ priceMin: '', priceMax: '', rarity: '', physicsType: '', availability: '', sortBy: 'newest', search: '' })}>Clear Filters</Button>
-                                </Card>
-                            )}
-                        </>
-                    )}
-                </div>
-
-                {showModal && selectedNFT && (
-                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-                        <Card variant="physics" className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                            <div className="flex justify-between items-start mb-4">
-                                <h2 className="text-2xl font-bold text-[var(--mustard)]">{selectedNFT.name}</h2>
-                                <Button variant="secondary" size="sm" onClick={() => setShowModal(false)}>✕</Button>
                             </div>
-                            <div className="grid md:grid-cols-2 gap-6">
-                                <div><img src={selectedNFT.image} alt={selectedNFT.name} className="w-full rounded-lg" /></div>
-                                <div className="space-y-4">
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-[var(--mustard)] mb-2">Details</h3>
-                                        <div className="space-y-2 text-sm">
-                                            <div><span className="text-white/60">Token ID:</span> <span className="text-white/80">{selectedNFT.id}</span></div>
-                                            <div><span className="text-white/60">Serial:</span> <span className="text-white/80">#{selectedNFT.serialNumber}</span></div>
-                                            <div><span className="text-white/60">Physics Type:</span> <span className="text-white/80">{PHYSICS_TYPE_NAMES[selectedNFT.physicsType]}</span></div>
-                                            <div><span className="text-white/60">Rarity:</span> <span className={RARITY_COLORS[selectedNFT.rarity]}>{RARITY_NAMES[selectedNFT.rarity]}</span></div>
-                                            <div><span className="text-white/60">Energy:</span> <span className="text-[var(--mustard)]">{selectedNFT.energy}</span></div>
-                                            <div><span className="text-white/60">Owner:</span> <span className="text-white/80">{selectedNFT.owner}</span></div>
-                                            <div><span className="text-white/60">Price:</span> <span className="text-[var(--mustard)]">{selectedNFT.price} HBAR</span></div>
+                            
+                            <p className="text-gray-300 text-lg mb-6 max-w-3xl">
+                                Trade physics properties and quantum assets. Discover unique NFTs with real quantum mechanics and physics attributes.
+                            </p>
+                            
+                            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    {isConnected ? (
+                                        <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 border border-green-500/30 rounded-full">
+                                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                            <span className="text-green-400 text-sm font-medium">
+                                                Connected: {formatAccountId(connectedAccount)}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/30 rounded-full">
+                                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                            <span className="text-red-400 text-sm font-medium">
+                                                Wallet Disconnected
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                <button 
+                                    onClick={handleWalletAction}
+                                    disabled={connectionState === 'Connecting'}
+                                    className={getWalletButtonClass()}
+                                >
+                                    🔷 {getWalletButtonText()}
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Stats Cards */}
+                    <section className="bg-gradient-to-br from-[var(--pane)] to-[var(--ink)] rounded-3xl p-6 md:p-8 shadow-2xl border border-gray-800 fade-in">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {[
+                                { label: 'Total NFTs', value: stats.totalNFTs, icon: '🎨', color: 'from-purple-500 to-pink-600' },
+                                { label: 'For Sale', value: stats.forSale, icon: '🛒', color: 'from-blue-500 to-cyan-600' },
+                                { label: 'Your NFTs', value: stats.owned, icon: '💎', color: 'from-yellow-500 to-orange-600' },
+                                { label: 'Floor Price', value: stats.floorPrice === Infinity ? '-' : stats.floorPrice.toFixed(1), icon: '💰', color: 'from-green-500 to-emerald-600' }
+                            ].map((stat, index) => (
+                                <div key={index} className="bg-gradient-to-br from-[var(--ink)] to-gray-900 p-5 rounded-2xl border border-gray-800 hover:border-[var(--mustard)]/50 transition-all duration-300">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-gray-400 text-sm font-medium">{stat.label}</span>
+                                        <div className={`w-10 h-10 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center shadow-lg`}>
+                                            <span className="text-xl">{stat.icon}</span>
                                         </div>
                                     </div>
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-[var(--mustard)] mb-2">Physics Properties</h3>
-                                        <div className="space-y-2 text-sm">
-                                            <div className="flex justify-between"><span className="text-white/60">Magnitude:</span><span className="text-white/80">{selectedNFT.properties.magnitude}</span></div>
-                                            <div className="flex justify-between"><span className="text-white/60">Duration:</span><span className="text-white/80">{selectedNFT.properties.duration}s</span></div>
-                                            <div className="flex justify-between"><span className="text-white/60">Range:</span><span className="text-white/80">{selectedNFT.properties.range}m</span></div>
-                                            <div className="flex justify-between"><span className="text-white/60">Cooldown:</span><span className="text-white/80">{selectedNFT.properties.cooldown}s</span></div>
-                                            <div className="flex justify-between"><span className="text-white/60">Energy Cost:</span><span className="text-white/80">{selectedNFT.properties.energyCost}</span></div>
-                                            <div className="mt-2">
-                                                <span className="text-white/60">Compatible with:</span>
-                                                <div className="flex flex-wrap gap-1 mt-1">
-                                                    {selectedNFT.properties.compatibility.map((comp, idx) => (
-                                                        <span key={idx} className="px-2 py-1 bg-[var(--mustard)]/20 rounded text-xs text-[var(--mustard)]">{comp}</span>
+                                    <div className="text-2xl md:text-3xl font-bold text-white">{stat.value}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* Navigation Tabs */}
+                    <nav className="bg-gradient-to-r from-[var(--pane)] to-[var(--ink)] rounded-2xl p-2 shadow-2xl border border-gray-800 fade-in">
+                        <ul className="flex flex-wrap justify-center gap-2">
+                            {tabs.map((tab) => (
+                                <li key={tab.id}>
+                                    <button 
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`px-4 py-2 rounded-xl font-medium text-sm transition-all duration-200 ${
+                                            activeTab === tab.id 
+                                                ? 'bg-gradient-to-r from-[var(--mustard)] to-yellow-600 text-[var(--ink)] shadow-lg' 
+                                                : 'text-gray-400 hover:text-[var(--mustard)] hover:bg-[var(--ink)]/50'
+                                        }`}
+                                    >
+                                        <span className="mr-1">{tab.icon}</span>
+                                        {tab.label}
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    </nav>
+
+                    {/* Tab Content */}
+                    <div className="space-y-6">
+                        {activeTab === 'dashboard' && (
+                            <section className="fade-in space-y-6">
+                                <div className="bg-gradient-to-br from-[var(--pane)] to-[var(--ink)] p-8 rounded-2xl shadow-xl border border-gray-800">
+                                    <h2 className="text-2xl font-bold text-[var(--mustard)] mb-4">Welcome to Physics NFT Marketplace</h2>
+                                    <p className="text-gray-300 mb-6">
+                                        Discover, trade, and collect unique Physics NFTs with quantum properties. Each NFT represents a unique physics force with customizable attributes.
+                                    </p>
+                                    <div className="flex gap-3 flex-wrap">
+                                        <button 
+                                            onClick={() => setActiveTab('shop')}
+                                            className="px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-[var(--mustard)] to-yellow-600 text-[var(--ink)] hover:opacity-90 transition-all shadow-lg"
+                                        >
+                                            Browse Shop
+                                        </button>
+                                        <button 
+                                            onClick={() => setActiveTab('mint')}
+                                            className="px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:opacity-90 transition-all shadow-lg"
+                                        >
+                                            Mint New NFT
+                                        </button>
+                                        <button 
+                                            onClick={() => setActiveTab('owned')}
+                                            className="px-6 py-3 rounded-xl font-semibold border border-gray-700 text-gray-300 hover:border-[var(--mustard)]/50 transition-all"
+                                        >
+                                            View Collection
+                                        </button>
+                                    </div>
+                                </div>
+                            </section>
+                        )}
+
+                        {activeTab === 'shop' && (
+                            <section className="fade-in space-y-6">
+                                {/* Filters */}
+                                <div className="bg-gradient-to-br from-[var(--pane)] to-[var(--ink)] p-6 rounded-2xl shadow-xl border border-gray-800">
+                                    <h3 className="text-lg font-semibold text-[var(--mustard)] mb-4">Filters ({displayedNFTs.length} items)</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                                        <div>
+                                            <label className="block text-sm text-gray-400 mb-1">Min Price (HBAR)</label>
+                                            <input
+                                                type="number"
+                                                value={filters.priceMin}
+                                                onChange={(e) => handleFilterChange({ priceMin: e.target.value })}
+                                                placeholder="Min"
+                                                className="w-full bg-[var(--ink)] text-white border border-gray-700 rounded-xl p-2 focus:border-[var(--mustard)] transition-colors text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm text-gray-400 mb-1">Max Price (HBAR)</label>
+                                            <input
+                                                type="number"
+                                                value={filters.priceMax}
+                                                onChange={(e) => handleFilterChange({ priceMax: e.target.value })}
+                                                placeholder="Max"
+                                                className="w-full bg-[var(--ink)] text-white border border-gray-700 rounded-xl p-2 focus:border-[var(--mustard)] transition-colors text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm text-gray-400 mb-1">Physics Type</label>
+                                            <select
+                                                value={filters.physicsType || ''}
+                                                onChange={(e) => handleFilterChange({ physicsType: e.target.value })}
+                                                className="w-full bg-[var(--ink)] text-white border border-gray-700 rounded-xl p-2 focus:border-[var(--mustard)] transition-colors text-sm"
+                                            >
+                                                <option value="">All Types</option>
+                                                {Object.entries(PHYSICS_TYPE_NAMES).map(([key, name]) => (
+                                                    <option key={key} value={key}>{name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm text-gray-400 mb-1">Rarity</label>
+                                            <select
+                                                value={filters.rarity || ''}
+                                                onChange={(e) => handleFilterChange({ rarity: e.target.value })}
+                                                className="w-full bg-[var(--ink)] text-white border border-gray-700 rounded-xl p-2 focus:border-[var(--mustard)] transition-colors text-sm"
+                                            >
+                                                <option value="">All Rarities</option>
+                                                {Object.entries(RARITY_NAMES).map(([key, name]) => (
+                                                    <option key={key} value={key}>{name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm text-gray-400 mb-1">Sort By</label>
+                                            <select
+                                                value={filters.sortBy}
+                                                onChange={(e) => handleFilterChange({ sortBy: e.target.value })}
+                                                className="w-full bg-[var(--ink)] text-white border border-gray-700 rounded-xl p-2 focus:border-[var(--mustard)] transition-colors text-sm"
+                                            >
+                                                <option value="newest">Newest</option>
+                                                <option value="oldest">Oldest</option>
+                                                <option value="priceHigh">Price: High to Low</option>
+                                                <option value="priceLow">Price: Low to High</option>
+                                                <option value="rarity">Rarity</option>
+                                                <option value="energy">Energy</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="mt-4">
+                                        <input
+                                            type="text"
+                                            placeholder="Search NFTs..."
+                                            value={filters.search}
+                                            onChange={(e) => handleFilterChange({ search: e.target.value })}
+                                            className="w-full bg-[var(--ink)] text-white border border-gray-700 rounded-xl p-3 focus:border-[var(--mustard)] transition-colors"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* NFT Grid */}
+                                {displayedNFTs.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                        {displayedNFTs.map((nft) => (
+                                            <NFTCard
+                                                key={nft.id}
+                                                nft={nft}
+                                                onBuy={buyNFT}
+                                                onView={viewNFT}
+                                                isOwned={userNFTs.includes(nft.id)}
+                                                isConnected={isConnected}
+                                                loading={txLoading}
+                                            />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="bg-gradient-to-br from-[var(--pane)] to-[var(--ink)] p-12 rounded-2xl shadow-xl border border-gray-800 text-center">
+                                        <p className="text-gray-400 text-lg mb-4">No NFTs found matching your criteria</p>
+                                        <button
+                                            onClick={() => setFilters({
+                                                priceMin: '',
+                                                priceMax: '',
+                                                rarity: '',
+                                                physicsType: '',
+                                                availability: '',
+                                                sortBy: 'newest',
+                                                search: ''
+                                            })}
+                                            className="px-6 py-2 rounded-xl font-medium border border-gray-700 text-gray-300 hover:border-[var(--mustard)]/50 transition-all"
+                                        >
+                                            Clear Filters
+                                        </button>
+                                    </div>
+                                )}
+                            </section>
+                        )}
+
+                        {activeTab === 'owned' && (
+                            <section className="fade-in">
+                                <div className="bg-gradient-to-br from-[var(--pane)] to-[var(--ink)] p-6 rounded-2xl shadow-xl border border-gray-800 mb-6">
+                                    <h3 className="text-2xl font-bold text-[var(--mustard)] mb-2">Your Physics NFTs</h3>
+                                    <p className="text-gray-400">Manage and view your collection of Physics NFTs</p>
+                                </div>
+                                
+                                {userNFTs.length === 0 ? (
+                                    <div className="bg-gradient-to-br from-[var(--pane)] to-[var(--ink)] p-12 rounded-2xl shadow-xl border border-gray-800 text-center">
+                                        <p className="text-gray-400 text-lg mb-4">No owned NFTs yet</p>
+                                        <p className="text-gray-500 text-sm mb-6">Mint or buy your first Physics NFT to get started!</p>
+                                        <div className="flex gap-3 justify-center">
+                                            <button
+                                                onClick={() => setActiveTab('shop')}
+                                                className="px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-[var(--mustard)] to-yellow-600 text-[var(--ink)] hover:opacity-90 transition-all shadow-lg"
+                                            >
+                                                Browse Shop
+                                            </button>
+                                            <button
+                                                onClick={() => setActiveTab('mint')}
+                                                className="px-6 py-3 rounded-xl font-semibold border border-gray-700 text-gray-300 hover:border-[var(--mustard)]/50 transition-all"
+                                            >
+                                                Mint NFT
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                        {nfts.filter(n => userNFTs.includes(n.id)).map(n => (
+                                            <NFTCard
+                                                key={n.id}
+                                                nft={n}
+                                                onBuy={() => {}}
+                                                onView={viewNFT}
+                                                isOwned={true}
+                                                isConnected={isConnected}
+                                                loading={false}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                            </section>
+                        )}
+
+                        {activeTab === 'mint' && (
+                            <section className="fade-in">
+                                {!isConnected ? (
+                                    <div className="bg-gradient-to-br from-[var(--pane)] to-[var(--ink)] p-12 rounded-2xl shadow-xl border border-gray-800 text-center">
+                                        <h3 className="text-2xl font-bold text-[var(--mustard)] mb-4">Connect Wallet to Mint</h3>
+                                        <p className="text-gray-400 mb-6">You need to connect your Hedera wallet to mint Physics NFTs</p>
+                                        <button 
+                                            onClick={handleWalletAction}
+                                            className="px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-[var(--mustard)] to-yellow-600 text-[var(--ink)] hover:opacity-90 transition-all shadow-lg"
+                                        >
+                                            Connect Wallet
+                                        </button>
+                                    </div>
+                                ) : !AUTHORIZED_MINTERS.includes(connectedAccount) ? (
+                                    <div className="bg-gradient-to-br from-[var(--pane)] to-[var(--ink)] p-12 rounded-2xl shadow-xl border border-gray-800 text-center">
+                                        <h3 className="text-2xl font-bold text-red-400 mb-4">Not Authorized</h3>
+                                        <p className="text-gray-400 mb-2">You are not authorized to mint NFTs</p>
+                                        <p className="text-gray-500 text-sm">Authorized accounts: {AUTHORIZED_MINTERS.join(', ')}</p>
+                                    </div>
+                                ) : (
+                                    <div className="bg-gradient-to-br from-[var(--pane)] to-[var(--ink)] p-6 rounded-2xl shadow-xl border border-gray-800">
+                                        <h3 className="text-xl font-bold text-[var(--mustard)] mb-6">Mint Physics NFT (10 HBAR)</h3>
+                                        
+                                        {mintStatus && (
+                                            <div className="bg-[var(--mustard)]/10 border border-[var(--mustard)]/30 rounded-lg p-3 text-center mb-6">
+                                                <p className="text-[var(--mustard)] text-sm font-medium">{mintStatus}</p>
+                                            </div>
+                                        )}
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                            <div>
+                                                <label className="block text-sm text-gray-400 mb-2">Name *</label>
+                                                <input
+                                                    value={name}
+                                                    onChange={e => setName(e.target.value)}
+                                                    placeholder="NFT Name"
+                                                    className="w-full bg-[var(--ink)] text-white border border-gray-700 rounded-xl p-3 focus:border-[var(--mustard)] transition-colors"
+                                                    disabled={isMinting}
+                                                />
+                                            </div>
+                                            
+                                            <div>
+                                                <label className="block text-sm text-gray-400 mb-2">Physics Type</label>
+                                                <select
+                                                    value={physicsType}
+                                                    onChange={e => setPhysicsType(parseInt(e.target.value))}
+                                                    className="w-full bg-[var(--ink)] text-white border border-gray-700 rounded-xl p-3 focus:border-[var(--mustard)] transition-colors"
+                                                    disabled={isMinting}
+                                                >
+                                                    {Object.entries(PHYSICS_TYPE_NAMES).map(([key, name]) => (
+                                                        <option key={key} value={key}>{name}</option>
                                                     ))}
+                                                </select>
+                                            </div>
+                                            
+                                            <div>
+                                                <label className="block text-sm text-gray-400 mb-2">Rarity</label>
+                                                <select
+                                                    value={rarity}
+                                                    onChange={e => setRarity(parseInt(e.target.value))}
+                                                    className="w-full bg-[var(--ink)] text-white border border-gray-700 rounded-xl p-3 focus:border-[var(--mustard)] transition-colors"
+                                                    disabled={isMinting}
+                                                >
+                                                    {Object.entries(RARITY_NAMES).map(([key, name]) => (
+                                                        <option key={key} value={key}>{name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div className="mb-4">
+                                            <label className="block text-sm text-gray-400 mb-2">Description *</label>
+                                            <textarea
+                                                value={description}
+                                                onChange={e => setDescription(e.target.value)}
+                                                placeholder="Description"
+                                                rows={3}
+                                                className="w-full bg-[var(--ink)] text-white border border-gray-700 rounded-xl p-3 focus:border-[var(--mustard)] transition-colors"
+                                                disabled={isMinting}
+                                            />
+                                        </div>
+
+                                        <div className="mb-6">
+                                            <h4 className="text-lg font-medium text-[var(--mustard)] mb-3">Custom Physics Properties (Optional)</h4>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                                <div>
+                                                    <label className="block text-sm text-gray-400 mb-1">Magnitude</label>
+                                                    <input
+                                                        type="number"
+                                                        value={customProperties.magnitude}
+                                                        onChange={e => setCustomProperties(prev => ({...prev, magnitude: e.target.value}))}
+                                                        placeholder="Auto-generated"
+                                                        className="w-full bg-[var(--ink)] text-white border border-gray-700 rounded-xl p-2 focus:border-[var(--mustard)] transition-colors text-sm"
+                                                        disabled={isMinting}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm text-gray-400 mb-1">Duration (s)</label>
+                                                    <input
+                                                        type="number"
+                                                        value={customProperties.duration}
+                                                        onChange={e => setCustomProperties(prev => ({...prev, duration: e.target.value}))}
+                                                        placeholder="Auto-generated"
+                                                        className="w-full bg-[var(--ink)] text-white border border-gray-700 rounded-xl p-2 focus:border-[var(--mustard)] transition-colors text-sm"
+                                                        disabled={isMinting}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm text-gray-400 mb-1">Range (m)</label>
+                                                    <input
+                                                        type="number"
+                                                        value={customProperties.range}
+                                                        onChange={e => setCustomProperties(prev => ({...prev, range: e.target.value}))}
+                                                        placeholder="Auto-generated"
+                                                        className="w-full bg-[var(--ink)] text-white border border-gray-700 rounded-xl p-2 focus:border-[var(--mustard)] transition-colors text-sm"
+                                                        disabled={isMinting}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm text-gray-400 mb-1">Cooldown (s)</label>
+                                                    <input
+                                                        type="number"
+                                                        value={customProperties.cooldown}
+                                                        onChange={e => setCustomProperties(prev => ({...prev, cooldown: e.target.value}))}
+                                                        placeholder="Auto-generated"
+                                                        className="w-full bg-[var(--ink)] text-white border border-gray-700 rounded-xl p-2 focus:border-[var(--mustard)] transition-colors text-sm"
+                                                        disabled={isMinting}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm text-gray-400 mb-1">Energy Cost</label>
+                                                    <input
+                                                        type="number"
+                                                        value={customProperties.energyCost}
+                                                        onChange={e => setCustomProperties(prev => ({...prev, energyCost: e.target.value}))}
+                                                        placeholder="Auto-generated"
+                                                        className="w-full bg-[var(--ink)] text-white border border-gray-700 rounded-xl p-2 focus:border-[var(--mustard)] transition-colors text-sm"
+                                                        disabled={isMinting}
+                                                    />
                                                 </div>
                                             </div>
                                         </div>
+
+                                        <div className="flex items-center justify-between pt-4 border-t border-gray-800">
+                                            <div className="text-gray-300">Cost: <span className="text-[var(--mustard)] font-bold">10 HBAR</span></div>
+                                            <button
+                                                onClick={handleMint}
+                                                disabled={isMinting || !name || !description}
+                                                className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+                                                    isMinting || !name || !description
+                                                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                                                        : 'bg-gradient-to-r from-[var(--mustard)] to-yellow-600 text-[var(--ink)] hover:opacity-90 shadow-lg'
+                                                }`}
+                                            >
+                                                {isMinting ? 'Minting...' : 'Mint NFT'}
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="pt-4">
-                                        {userNFTs.includes(selectedNFT.id) ? (
-                                            <Button variant="quantum" className="w-full" disabled>Owned</Button>
-                                        ) : selectedNFT.isForSale ? (
-                                            <Button variant="physics" className="w-full" onClick={() => { setShowModal(false); buyNFT(selectedNFT) }} disabled={!isConnected || txLoading}>{txLoading ? <Loader size="sm" /> : `Buy for ${selectedNFT.price} HBAR`}</Button>
-                                        ) : (
-                                            <Button variant="secondary" className="w-full" disabled>Not For Sale</Button>
-                                        )}
+                                )}
+                            </section>
+                        )}
+                    </div>
+
+                    {/* Footer */}
+                    <footer className="text-center py-6 fade-in">
+                        <p className="text-gray-500 text-sm">
+                            © 2025 Physics NFT Marketplace – Powered by Hedera Blockchain
+                        </p>
+                    </footer>
+                </main>
+            </div>
+
+            {/* Modal */}
+            {showModal && selectedNFT && (
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 fade-in">
+                    <div className="bg-gradient-to-br from-[var(--pane)] to-[var(--ink)] rounded-2xl shadow-2xl border border-gray-800 max-w-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar p-6">
+                        <div className="flex justify-between items-start mb-4">
+                            <h2 className="text-2xl font-bold text-[var(--mustard)]">{selectedNFT.name}</h2>
+                            <button
+                                onClick={() => setShowModal(false)}
+                                className="w-8 h-8 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white transition-all flex items-center justify-center"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <img src={selectedNFT.image} alt={selectedNFT.name} className="w-full rounded-lg" />
+                            </div>
+                            <div className="space-y-4">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-[var(--mustard)] mb-2">Details</h3>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400">Token ID:</span>
+                                            <span className="text-white">{selectedNFT.id}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400">Serial:</span>
+                                            <span className="text-white">#{selectedNFT.serialNumber}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400">Physics Type:</span>
+                                            <span className="text-white">{PHYSICS_TYPE_NAMES[selectedNFT.physicsType]}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400">Rarity:</span>
+                                            <span className={RARITY_COLORS[selectedNFT.rarity]}>{RARITY_NAMES[selectedNFT.rarity]}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400">Energy:</span>
+                                            <span className="text-[var(--mustard)]">{selectedNFT.energy}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400">Price:</span>
+                                            <span className="text-[var(--mustard)] font-bold">{selectedNFT.price} HBAR</span>
+                                        </div>
                                     </div>
                                 </div>
+                                <div>
+                                    <h3 className="text-lg font-semibold text-[var(--mustard)] mb-2">Physics Properties</h3>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400">Magnitude:</span>
+                                            <span className="text-white">{selectedNFT.properties.magnitude}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400">Duration:</span>
+                                            <span className="text-white">{selectedNFT.properties.duration}s</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400">Range:</span>
+                                            <span className="text-white">{selectedNFT.properties.range}m</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400">Cooldown:</span>
+                                            <span className="text-white">{selectedNFT.properties.cooldown}s</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400">Energy Cost:</span>
+                                            <span className="text-white">{selectedNFT.properties.energyCost}</span>
+                                        </div>
+                                        <div className="mt-2">
+                                            <span className="text-gray-400 block mb-1">Compatible with:</span>
+                                            <div className="flex flex-wrap gap-1">
+                                                {selectedNFT.properties.compatibility.map((comp, idx) => (
+                                                    <span key={idx} className="px-2 py-1 bg-[var(--mustard)]/20 rounded text-xs text-[var(--mustard)]">{comp}</span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="pt-4">
+                                    {userNFTs.includes(selectedNFT.id) ? (
+                                        <button
+                                            disabled
+                                            className="w-full px-6 py-3 rounded-xl font-semibold bg-green-500/20 text-green-400 border border-green-500/30 cursor-not-allowed"
+                                        >
+                                            Owned
+                                        </button>
+                                    ) : selectedNFT.isForSale ? (
+                                        <button
+                                            onClick={() => { setShowModal(false); buyNFT(selectedNFT) }}
+                                            disabled={!isConnected || txLoading}
+                                            className="w-full px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-[var(--mustard)] to-yellow-600 text-[var(--ink)] hover:opacity-90 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {txLoading ? 'Processing...' : `Buy for ${selectedNFT.price} HBAR`}
+                                        </button>
+                                    ) : (
+                                        <button
+                                            disabled
+                                            className="w-full px-6 py-3 rounded-xl font-semibold border border-gray-700 text-gray-500 cursor-not-allowed"
+                                        >
+                                            Not For Sale
+                                        </button>
+                                    )}
+                                </div>
                             </div>
-                        </Card>
+                        </div>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
         </>
     )
 }

@@ -9,7 +9,6 @@ import {
     TopicCreateTransaction,
     TopicMessageSubmitTransaction,
 } from '@hashgraph/sdk'
-import 'dotenv'
 
 const Entanglement = () => {
     const { 
@@ -37,11 +36,12 @@ const Entanglement = () => {
     const [assetStates, setAssetStates] = useState({})
     const [entanglementPairs, setEntanglementPairs] = useState({})
 
-function imageUrl(){
-    const randomImageNum= Math.floor(Math.random() * 10) + 1
-    const Url = `/image/${randomImageNum}.jpg`;
-    return Url
-}
+    function imageUrl(){
+        const randomImageNum= Math.floor(Math.random() * 10) + 1
+        const Url = `/image/${randomImageNum}.jpg`;
+        return Url
+    }
+
     const tabs = [
         { id: 'lab', label: 'Entanglement Lab', icon: '🔬' },
         { id: 'monitor', label: 'Monitor', icon: '📊' },
@@ -81,14 +81,17 @@ function imageUrl(){
     };
 
     const getWalletButtonClass = () => {
-        const baseClass = "px-4 py-2 rounded-lg font-semibold transition-colors";
+        const baseClass = "px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5";
+
         if (connectionState === 'Connecting') {
             return `${baseClass} bg-yellow-500 text-white cursor-not-allowed`;
         }
+
         if (isConnected) {
-            return `${baseClass} bg-green-500 text-white hover:bg-green-600`;
+            return `${baseClass} bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700`;
         }
-        return `${baseClass} bg-[var(--mustard)] text-[var(--ink)] hover:opacity-80`;
+
+        return `${baseClass} bg-gradient-to-r from-[var(--mustard)] to-yellow-600 text-[var(--ink)] hover:opacity-90`;
     };
 
     const fetchUserNFTs = async () => {
@@ -123,89 +126,77 @@ function imageUrl(){
         }
     }
 
-const createQuantumToken = async () => {
-    if (!isConnected) {
-        await connectWallet()
-        return
-    }
-
-    try {
-        const signer = getSigner()
-        // Ensure connectedAccount is a valid string
-        if (!connectedAccount || typeof connectedAccount !== 'string') {
-            throw new Error('Invalid connected account')
+    const createQuantumToken = async () => {
+        if (!isConnected) {
+            await connectWallet()
+            return
         }
-        
-        const accountId = AccountId.fromString(connectedAccount)
 
-        const tokenCreateTxn = new TokenCreateTransaction()
-            .setTokenName("Quantum Token")
-            .setTokenSymbol("QUANTUM")
-            .setTokenType(TokenType.FungibleCommon)
-            .setDecimals(8)
-            .setInitialSupply(10000 * 100000000)
-            .setTreasuryAccountId(accountId)
-            // Explicitly set the auto-renew account to prevent SDK issues
-            .setAutoRenewAccountId(accountId)
-            .setAutoRenewPeriod(7890000) // ~3 months in seconds
+        try {
+            const signer = getSigner()
+            if (!connectedAccount || typeof connectedAccount !== 'string') {
+                throw new Error('Invalid connected account')
+            }
+            
+            const accountId = AccountId.fromString(connectedAccount)
 
-        const frozenTx = await tokenCreateTxn.freezeWithSigner(signer)
-        const txResponse = await frozenTx.executeWithSigner(signer)
-        const receipt = await txResponse.getReceiptWithSigner(signer)
+            const tokenCreateTxn = new TokenCreateTransaction()
+                .setTokenName("Quantum Token")
+                .setTokenSymbol("QUANTUM")
+                .setTokenType(TokenType.FungibleCommon)
+                .setDecimals(8)
+                .setInitialSupply(10000 * 100000000)
+                .setTreasuryAccountId(accountId)
+                .setAutoRenewAccountId(accountId)
+                .setAutoRenewPeriod(7890000)
 
-        const tokenIdObj = receipt.tokenId
-        const tokenIdStr = tokenIdObj.toString()
-        
-        setQuantumTokenId(tokenIdStr)
-        localStorage.setItem('quantumTokenId', tokenIdStr)
-        console.log('QUANTUM Token created:', tokenIdStr)
+            const frozenTx = await tokenCreateTxn.freezeWithSigner(signer)
+            const txResponse = await frozenTx.executeWithSigner(signer)
+            const receipt = await txResponse.getReceiptWithSigner(signer)
 
-        return tokenIdStr
-    } catch (error) {
-        console.error('Error creating QUANTUM token:', error)
-        throw error
-    }
-}
+            const tokenIdObj = receipt.tokenId
+            const tokenIdStr = tokenIdObj.toString()
+            
+            setQuantumTokenId(tokenIdStr)
+            localStorage.setItem('quantumTokenId', tokenIdStr)
+            console.log('QUANTUM Token created:', tokenIdStr)
 
-
-// Create Entanglement Topic using Hedera Consensus Service
-// Create Entanglement Topic using Hedera Consensus Service
-const createEntanglementTopic = async () => {
-    if (!isConnected) {
-        await connectWallet()
-        return
+            return tokenIdStr
+        } catch (error) {
+            console.error('Error creating QUANTUM token:', error)
+            throw error
+        }
     }
 
-    try {
-        const signer = getSigner()
-        
-        // Create the topic transaction WITHOUT admin/submit keys
-        // HashConnect signers don't support getAccountKey()
-        const topicCreateTxn = new TopicCreateTransaction()
-            .setTopicMemo("QuantumVerse Entanglement Registry")
-            .setAutoRenewAccountId(AccountId.fromString(connectedAccount))
-            .setAutoRenewPeriod(7890000) // 3 months in seconds
+    const createEntanglementTopic = async () => {
+        if (!isConnected) {
+            await connectWallet()
+            return
+        }
 
-        // Freeze and execute via signer
-        const frozenTx = await topicCreateTxn.freezeWithSigner(signer)
-        const txResponse = await frozenTx.executeWithSigner(signer)
-        const receipt = await txResponse.getReceiptWithSigner(signer)
-        
-        // Convert to string to avoid undefined property errors
-        const topicIdStr = receipt.topicId.toString()
-        setEntanglementTopic(topicIdStr)
-        
-        // Persist to localStorage for reloads
-        localStorage.setItem('entanglementTopic', topicIdStr)
-        
-        console.log('Entanglement Topic created:', topicIdStr)
-        return topicIdStr
-    } catch (error) {
-        console.error('Error creating entanglement topic:', error)
-        throw new Error(error.message || 'Failed to create entanglement topic')
+        try {
+            const signer = getSigner()
+            
+            const topicCreateTxn = new TopicCreateTransaction()
+                .setTopicMemo("QuantumVerse Entanglement Registry")
+                .setAutoRenewAccountId(AccountId.fromString(connectedAccount))
+                .setAutoRenewPeriod(7890000)
+
+            const frozenTx = await topicCreateTxn.freezeWithSigner(signer)
+            const txResponse = await frozenTx.executeWithSigner(signer)
+            const receipt = await txResponse.getReceiptWithSigner(signer)
+            
+            const topicIdStr = receipt.topicId.toString()
+            setEntanglementTopic(topicIdStr)
+            localStorage.setItem('entanglementTopic', topicIdStr)
+            
+            console.log('Entanglement Topic created:', topicIdStr)
+            return topicIdStr
+        } catch (error) {
+            console.error('Error creating entanglement topic:', error)
+            throw new Error(error.message || 'Failed to create entanglement topic')
+        }
     }
-}
-
 
     const calculateInitialStrength = (realityTypeA, realityTypeB, tokenIdA, serialA, tokenIdB, serialB) => {
         let baseStrength = 50
@@ -293,7 +284,6 @@ const createEntanglementTopic = async () => {
             const signer = getSigner()
             const accountId = AccountId.fromString(connectedAccount)
 
-            // FIXED: Ensure tokenId is always a string
             let tokenIdString = quantumTokenId
             if (!tokenIdString) {
                 tokenIdString = await createQuantumToken()
@@ -304,7 +294,6 @@ const createEntanglementTopic = async () => {
                 topicIdString = await createEntanglementTopic()
             }
 
-            // FIXED: Convert string to TokenId object for transaction
             const tokenIdObj = TokenId.fromString(tokenIdString)
 
             const transferTxn = new TransferTransaction()
@@ -494,7 +483,6 @@ const createEntanglementTopic = async () => {
 
             const strengtheningCost = ENTANGLEMENT_COST / 2
 
-            // FIXED: Convert tokenId string to TokenId object
             const tokenIdObj = TokenId.fromString(quantumTokenId)
 
             const transferTxn = new TransferTransaction()
@@ -629,7 +617,6 @@ const createEntanglementTopic = async () => {
             }
         }
         
-        // FIXED: Store as string, not TokenId object
         if (savedTokenId) {
             setQuantumTokenId(savedTokenId)
         }
@@ -645,460 +632,271 @@ const createEntanglementTopic = async () => {
         }
     }, [isConnected])
 
-
     return (
         <>
             <style>{`
                 :root {
-                    --ink: #0a0a0f;           /* Very dark blue-black */
-                    --pane: #1a1a2e;         /* Dark blue-gray */
-                    --mustard: #ffd700;      /* Gold accent */
+                    --ink: #0a0a0f;
+                    --pane: #1a1a2e;
+                    --mustard: #ffd700;
                 }
 
-                @keyframes fade {
-                    from { opacity:.3; transform: translateY(4px); }
-                    to   { opacity:1;  transform: translateY(0); }
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
                 }
-                .fade-in { animation: fade .25s ease; }
+                
+                .fade-in {
+                    animation: fadeIn 0.4s ease-out;
+                }
+                
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: rgba(0, 0, 0, 0.2);
+                    border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: var(--mustard);
+                    border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #d4a942;
+                }
             `}</style>
             
-            <div className="min-h-screen bg-[var(--ink)] text-white">
-                <main className="w-90vw mx-auto px-4 py-10 space-y-8">
+            <div className="min-h-screen bg-gradient-to-br from-[var(--ink)] via-gray-900 to-[var(--ink)] text-white">
+                <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 space-y-6">
                     
-                    <section className="bg-[var(--mustard)] text-[var(--ink)] rounded-2xl p-6 shadow-lg fade-in">
-                        <h1 className="text-xl font-bold mb-2">QuantumVerse - Quantum Entanglement via NFTs</h1>
-                        <p className="text-sm">
-                            Entangle Hedera NFTs across realities using quantum correlation and blockchain technology
-                        </p>
+                    {/* Hero Banner */}
+                    <section className="relative bg-gradient-to-br from-[var(--pane)] via-[var(--ink)] to-[var(--pane)] rounded-3xl p-8 md:p-10 shadow-2xl border border-gray-800 overflow-hidden fade-in">
+                        <div className="absolute top-0 right-0 w-96 h-96 bg-[var(--mustard)] opacity-5 rounded-full blur-3xl"></div>
+                        <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500 opacity-5 rounded-full blur-3xl"></div>
                         
-                        <div className="mt-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                {isConnected ? (
-                                    <div className="flex items-center gap-2 text-green-700">
-                                        <span className="w-2 h-2 bg-green-600 rounded-full"></span>
-                                        <span className="text-xs font-medium">Connected: {formatAccountId(connectedAccount)}</span>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-2 text-red-700">
-                                        <span className="w-2 h-2 bg-red-600 rounded-full"></span>
-                                        <span className="text-xs font-medium">Wallet Disconnected</span>
-                                    </div>
-                                )}
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-12 h-12 bg-gradient-to-br from-[var(--mustard)] to-yellow-600 rounded-2xl flex items-center justify-center text-2xl shadow-lg">
+                                    🌌
+                                </div>
+                                <div>
+                                    <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-[var(--mustard)] to-yellow-600 bg-clip-text text-transparent">
+                                        QuantumVerse Entanglement
+                                    </h1>
+                                    <p className="text-gray-400 text-sm mt-1">
+                                        Powered by Hedera Blockchain & Quantum Correlation
+                                    </p>
+                                </div>
                             </div>
                             
-                            <button 
-                                onClick={handleWalletAction}
-                                disabled={connectionState === 'Connecting'}
-                                className={`text-sm ${getWalletButtonClass()}`}
-                            >
-                                🔷 {getWalletButtonText()}
-                            </button>
-                        </div>
-                    </section>
-
-                    <section className="bg-[var(--pane)] text-[var(--mustard)] rounded-2xl p-6 shadow-xl fade-in">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                            <div className="bg-[var(--ink)] rounded-xl p-4 border border-[color:rgba(244,211,94,0.2)] text-center">
-                                <div className="text-3xl mb-2">🌌</div>
-                                <div className="text-2xl font-bold text-[var(--mustard)]">
-                                    {activeEntanglements.length}
+                            <p className="text-gray-300 text-lg mb-6 max-w-3xl">
+                                Entangle Hedera NFTs across realities using quantum correlation technology. Link your digital assets for synchronized state management.
+                            </p>
+                            
+                            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    {isConnected ? (
+                                        <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 border border-green-500/30 rounded-full">
+                                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                            <span className="text-green-400 text-sm font-medium">
+                                                Connected: {formatAccountId(connectedAccount)}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/30 rounded-full">
+                                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                            <span className="text-red-400 text-sm font-medium">
+                                                Wallet Disconnected
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="text-sm text-white/70">Active Entanglements</div>
-                            </div>
-
-                            <div className="bg-[var(--ink)] rounded-xl p-4 border border-[color:rgba(244,211,94,0.2)] text-center">
-                                <div className="text-3xl mb-2">🎨</div>
-                                <div className="text-2xl font-bold text-[var(--mustard)]">
-                                    {userNFTs.length}
-                                </div>
-                                <div className="text-sm text-white/70">Your NFTs</div>
-                            </div>
-
-                            <div className="bg-[var(--ink)] rounded-xl p-4 border border-[color:rgba(244,211,94,0.2)] text-center">
-                                <div className="text-3xl mb-2">⚡</div>
-                                <div className="text-2xl font-bold text-[var(--mustard)]">
-                                    {totalStrength.toFixed(1)}
-                                </div>
-                                <div className="text-sm text-white/70">Total Strength</div>
-                            </div>
-
-                            <div className="bg-[var(--ink)] rounded-xl p-4 border border-[color:rgba(244,211,94,0.2)] text-center">
-                                <div className="text-3xl mb-2">🎯</div>
-                                <div className="text-2xl font-bold text-[var(--mustard)]">
-                                    {Math.round(totalStrength / Math.max(activeEntanglements.length, 1))}%
-                                </div>
-                                <div className="text-sm text-white/70">Avg Strength</div>
+                                
+                                <button 
+                                    onClick={handleWalletAction}
+                                    disabled={connectionState === 'Connecting'}
+                                    className={getWalletButtonClass()}
+                                >
+                                    🔷 {getWalletButtonText()}
+                                </button>
                             </div>
                         </div>
                     </section>
 
-                    <nav className="bg-[var(--pane)] text-[var(--mustard)] rounded-2xl p-4 shadow-xl fade-in">
-                        <ul className="flex flex-wrap justify-center gap-[3vw] text-sm font-medium">
+                    {/* Stats Cards */}
+                    <section className="bg-gradient-to-br from-[var(--pane)] to-[var(--ink)] rounded-3xl p-6 md:p-8 shadow-2xl border border-gray-800 fade-in">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {[
+                                { label: 'Active Entanglements', value: activeEntanglements.length, icon: '🌌', color: 'from-purple-500 to-pink-600' },
+                                { label: 'Your NFTs', value: userNFTs.length, icon: '🎨', color: 'from-blue-500 to-cyan-600' },
+                                { label: 'Total Strength', value: totalStrength.toFixed(1), icon: '⚡', color: 'from-yellow-500 to-orange-600' },
+                                { label: 'Avg Strength', value: `${Math.round(totalStrength / Math.max(activeEntanglements.length, 1))}%`, icon: '🎯', color: 'from-green-500 to-emerald-600' }
+                            ].map((stat, index) => (
+                                <div key={index} className="bg-gradient-to-br from-[var(--ink)] to-gray-900 p-5 rounded-2xl border border-gray-800 hover:border-[var(--mustard)]/50 transition-all duration-300">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-gray-400 text-sm font-medium">{stat.label}</span>
+                                        <div className={`w-10 h-10 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center shadow-lg`}>
+                                            <span className="text-xl">{stat.icon}</span>
+                                        </div>
+                                    </div>
+                                    <div className="text-2xl md:text-3xl font-bold text-white">{stat.value}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* Navigation Tabs */}
+                    <nav className="bg-gradient-to-r from-[var(--pane)] to-[var(--ink)] rounded-2xl p-2 shadow-2xl border border-gray-800 fade-in">
+                        <ul className="flex flex-wrap justify-center gap-2">
                             {tabs.map((tab) => (
                                 <li key={tab.id}>
-                                    <button
+                                    <button 
                                         onClick={() => setActiveTab(tab.id)}
-                                        className={`px-3 py-2 hover:underline ${
-                                            activeTab === tab.id ? 'underline font-bold' : ''
+                                        className={`px-4 py-2 rounded-xl font-medium text-sm transition-all duration-200 ${
+                                            activeTab === tab.id 
+                                                ? 'bg-gradient-to-r from-[var(--mustard)] to-yellow-600 text-[var(--ink)] shadow-lg' 
+                                                : 'text-gray-400 hover:text-[var(--mustard)] hover:bg-[var(--ink)]/50'
                                         }`}
                                     >
-                                        {tab.icon} {tab.label}
+                                        <span className="mr-1">{tab.icon}</span>
+                                        {tab.label}
                                     </button>
                                 </li>
                             ))}
                         </ul>
                     </nav>
 
-                    <div className="min-h-[600px]">
-                        {activeTab === 'lab' && (
-                            <section className="bg-[var(--pane)] text-[var(--mustard)] rounded-2xl p-6 shadow-xl space-y-6 fade-in">
-                                <h2 className="text-xl font-semibold">Entanglement Laboratory</h2>
-                                
-                                {!isConnected ? (
-                                    <div className="text-center py-8">
-                                        <div className="text-6xl mb-4">🔷</div>
-                                        <h4 className="text-xl font-semibold mb-2">Connect Your Hedera Wallet</h4>
-                                        <p className="text-white/70 mb-6">
-                                            Connect your wallet to entangle your NFTs with quantum correlation
-                                        </p>
-                                        <button 
-                                            onClick={handleWalletAction}
-                                            disabled={connectionState === 'Connecting'}
-                                            className={getWalletButtonClass()}
-                                        >
-                                            🔷 {getWalletButtonText()}
-                                        </button>
-                                    </div>
-                                ) : userNFTs.length === 0 ? (
-                                    <div className="text-center py-8">
-                                        <div className="text-6xl mb-4">🎨</div>
-                                        <h4 className="text-xl font-semibold mb-2">No NFTs Found</h4>
-                                        <p className="text-white/70 mb-6">
-                                            You don't have any NFTs yet. Mint some NFTs first to create entanglements.
-                                        </p>
-                                        <button 
-                                            onClick={fetchUserNFTs}
-                                            className="bg-[var(--mustard)] text-[var(--ink)] hover:opacity-80 px-4 py-2 rounded-lg font-semibold"
-                                        >
-                                            🔄 Refresh NFTs
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-6">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div>
-                                                <h4 className="font-semibold mb-3 text-white/80">Select NFT A</h4>
-                                                <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto">
-                                                    {userNFTs.map((nft, idx) => (
-                                                        <div 
-                                                            key={idx}
-                                                            onClick={() => setSelectedNFT_A(nft)}
-                                                            className={`cursor-pointer p-3 rounded-xl border-2 transition-all ${
-                                                                selectedNFT_A?.tokenId === nft.tokenId && selectedNFT_A?.serial === nft.serial
-                                                                    ? 'border-purple-500 bg-purple-900/30'
-                                                                    : 'border-[var(--mustard)]/20 bg-[var(--ink)] hover:border-purple-400'
-                                                            }`}
-                                                        >
-                                                            <img src={imageUrl()} alt={nft.name} className="w-full h-20 object-cover rounded-lg mb-2" />
-                                                            <h5 className="text-xs font-semibold text-white truncate">{nft.name}</h5>
-                                                            <p className="text-xs text-white/60">#{nft.serial}</p>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                                    
-                                            <div>
-                                                <h4 className="font-semibold mb-3 text-white/80">Select NFT B</h4>
-                                                <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto">
-                                                    {userNFTs.map((nft, idx) => (
-                                                        <div 
-                                                            key={idx}
-                                                            onClick={() => setSelectedNFT_B(nft)}
-                                                            className={`cursor-pointer p-3 rounded-xl border-2 transition-all ${
-                                                                selectedNFT_B?.tokenId === nft.tokenId && selectedNFT_B?.serial === nft.serial
-                                                                    ? 'border-blue-500 bg-blue-900/30'
-                                                                    : 'border-[var(--mustard)]/20 bg-[var(--ink)] hover:border-blue-400'
-                                                            }`}
-                                                        >
-                                                            <img src={imageUrl()} alt={nft.name} className="w-full h-20 object-cover rounded-lg mb-2" />
-                                                            <h5 className="text-xs font-semibold text-white truncate">{nft.name}</h5>
-                                                            <p className="text-xs text-white/60">#{nft.serial}</p>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
+                    {/* Tab Content */}
+                    <div className="space-y-6">
+                      {activeTab === 'lab' && (
+                        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 fade-in">
+                          {/* Select NFTs */}
+                          <div className="bg-gradient-to-br from-[var(--pane)] to-[var(--ink)] p-6 rounded-2xl shadow-xl border border-gray-800">
+                            <h3 className="text-lg font-semibold text-[var(--mustard)] mb-4">Select Two NFTs</h3>
+                            <div className="space-y-4 max-h-96 overflow-y-auto custom-scrollbar">
+                              {userNFTs.map((nft) => (
+                                <div
+                                  key={`${nft.tokenId}.${nft.serial}`}
+                                  onClick={() => {
+                                    const key = `${nft.tokenId}.${nft.serial}`;
+                                    if (!selectedNFT_A) setSelectedNFT_A(nft)
+                                    else if (!selectedNFT_B && key !== `${selectedNFT_A.tokenId}.${selectedNFT_A.serial}`) setSelectedNFT_B(nft)
+                                  }}
+                                  className={`
+                                    flex items-center gap-4 p-3 rounded-xl border transition-colors cursor-pointer
+                                    ${selectedNFT_A && `${nft.tokenId}.${nft.serial}` === `${selectedNFT_A.tokenId}.${selectedNFT_A.serial}` ? 'border-blue-400' : ''}
+                                    ${selectedNFT_B && `${nft.tokenId}.${nft.serial}` === `${selectedNFT_B.tokenId}.${selectedNFT_B.serial}` ? 'border-purple-400' : ''}
+                                    hover:border-[var(--mustard)]/50
+                                  `}
+                                >
+                                  <img src={nft.image} alt={nft.name} className="w-12 h-12 rounded-lg object-cover" />
+                                  <div>
+                                    <p className="font-medium">{nft.name}</p>
+                                    <p className="text-xs text-gray-400">{nft.realityType}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          {/* Partner & Actions */}
+                          <div className="bg-gradient-to-br from-[var(--pane)] to-[var(--ink)] p-6 rounded-2xl shadow-xl border border-gray-800 flex flex-col justify-between">
+                            <div className="space-y-4">
+                              <div>
+                                <label className="block text-sm text-gray-400 mb-1">Partner Account</label>
+                                <input
+                                  value={partnerAccount}
+                                  onChange={(e) => setPartnerAccount(e.target.value)}
+                                  placeholder="0.0.xxxx"
+                                  className="w-full bg-[var(--ink)] text-white border border-gray-700 rounded-xl p-3 focus:border-[var(--mustard)] transition-colors"
+                                />
+                              </div>
+                              {entanglementState.error && (
+                                <div className="bg-red-600/30 p-3 rounded-lg text-red-300">
+                                  {entanglementState.error}
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              onClick={createQuantumEntanglement}
+                              disabled={
+                                !selectedNFT_A || !selectedNFT_B ||
+                                !partnerAccount || entanglementState.loading
+                              }
+                              className={`mt-4 w-full py-3 rounded-2xl font-bold text-lg transition-all duration-200
+                                ${entanglementState.loading
+                                  ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                                  : 'bg-gradient-to-r from-[var(--mustard)] to-yellow-600 text-[var(--ink)] hover:opacity-90 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+                                }
+                              `}
+                            >
+                              {entanglementState.loading ? 'Creating...' : 'Entangle NFTs'}
+                            </button>
+                          </div>
+                        </section>
+                      )}
 
-                                        {(selectedNFT_A || selectedNFT_B) && (
-                                            <div className="bg-[var(--ink)] rounded-xl p-4 border border-[color:rgba(244,211,94,0.2)]">
-                                                <h4 className="font-semibold mb-3">Selected NFTs</h4>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div className="text-center">
-                                                        {selectedNFT_A ? (
-                                                            <>
-                                                                <div className="text-2xl mb-2">🟣</div>
-                                                                <p className="text-sm font-semibold">{selectedNFT_A.name}</p>
-                                                                <p className="text-xs text-white/60">{selectedNFT_A.tokenId} #{selectedNFT_A.serial}</p>
-                                                            </>
-                                                        ) : (
-                                                            <p className="text-white/40">No NFT selected</p>
-                                                        )}
-                                                    </div>
-                                                    <div className="text-center">
-                                                        {selectedNFT_B ? (
-                                                            <>
-                                                                <div className="text-2xl mb-2">🔵</div>
-                                                                <p className="text-sm font-semibold">{selectedNFT_B.name}</p>
-                                                                <p className="text-xs text-white/60">{selectedNFT_B.tokenId} #{selectedNFT_B.serial}</p>
-                                                            </>
-                                                        ) : (
-                                                            <p className="text-white/40">No NFT selected</p>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        <div>
-                                            <label className="block text-sm font-semibold mb-2 text-white/80">
-                                                Partner Account ID
-                                            </label>
-                                            <input 
-                                                type="text"
-                                                value={partnerAccount}
-                                                onChange={(e) => setPartnerAccount(e.target.value)}
-                                                placeholder="0.0.123456"
-                                                className="w-full bg-[var(--ink)] text-white border border-[var(--mustard)]/30 rounded-lg p-3"
-                                            />
-                                            <p className="text-xs text-white/50 mt-1">Enter the Hedera account ID to entangle with</p>
-                                        </div>
-
-                                        <button 
-                                            onClick={createQuantumEntanglement}
-                                            disabled={!selectedNFT_A || !selectedNFT_B || !partnerAccount || entanglementState.loading}
-                                            className={`w-full py-3 rounded-lg font-semibold transition-colors ${
-                                                (!selectedNFT_A || !selectedNFT_B || !partnerAccount || entanglementState.loading)
-                                                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                                                    : 'bg-[var(--mustard)] text-[var(--ink)] hover:opacity-80'
-                                            }`}
-                                        >
-                                            {entanglementState.loading ? '🌀 Creating Entanglement...' : `🌌 Create Entanglement (${ENTANGLEMENT_COST} QUANTUM)`}
-                                        </button>
-
-                                        {entanglementState.error && (
-                                            <div className="bg-red-900/50 border border-red-500 p-3 rounded-lg text-sm">
-                                                <p className="text-red-300">❌ {entanglementState.error}</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </section>
-                        )}
-
-                        {activeTab === 'monitor' && (
-                            <section className="bg-[var(--pane)] text-[var(--mustard)] rounded-2xl p-6 shadow-xl space-y-6 fade-in">
-                                <h2 className="text-xl font-semibold">Entanglement Monitor</h2>
-                                
-                                {activeEntanglements.length === 0 ? (
-                                    <div className="text-center py-12">
-                                        <div className="text-6xl mb-4">🌌</div>
-                                        <h4 className="text-lg font-semibold mb-2 text-white">No Active Entanglements</h4>
-                                        <p className="text-white/60">
-                                            Create your first NFT entanglement in the lab
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-4">
-                                        {activeEntanglements.map((entanglement) => (
-                                            <div 
-                                                key={entanglement.id}
-                                                className="p-4 bg-[var(--ink)] rounded-xl border border-[color:rgba(244,211,94,0.2)]"
-                                            >
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <h4 className="font-semibold text-white">
-                                                        {entanglement.id}
-                                                    </h4>
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                                                        <span className="text-green-400 text-sm">Active</span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                                    <div className="bg-[var(--pane)] rounded-lg p-3">
-                                                        <p className="text-xs text-white/60 mb-1">NFT A</p>
-                                                        <p className="text-sm font-semibold text-purple-400">{entanglement.nftA.name}</p>
-                                                        <p className="text-xs text-white/60">{entanglement.nftA.tokenId} #{entanglement.nftA.serial}</p>
-                                                        <p className="text-xs text-white/60">{entanglement.nftA.realityType}</p>
-                                                    </div>
-
-                                                    <div className="bg-[var(--pane)] rounded-lg p-3">
-                                                        <p className="text-xs text-white/60 mb-1">NFT B</p>
-                                                        <p className="text-sm font-semibold text-blue-400">{entanglement.nftB.name}</p>
-                                                        <p className="text-xs text-white/60">{entanglement.nftB.tokenId} #{entanglement.nftB.serial}</p>
-                                                        <p className="text-xs text-white/60">{entanglement.nftB.realityType}</p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="grid grid-cols-3 gap-4 mb-4">
-                                                    <div>
-                                                        <p className="text-sm text-white/60">Strength</p>
-                                                        <div className="text-lg font-bold text-[var(--mustard)]">
-                                                            {entanglement.entanglementStrength}%
-                                                        </div>
-                                                    </div>
-
-                                                    <div>
-                                                        <p className="text-sm text-white/60">Last Sync</p>
-                                                        <div className="text-lg font-bold text-blue-400">
-                                                            {Math.floor((Date.now() - entanglement.lastSync) / 1000)}s ago
-                                                        </div>
-                                                    </div>
-
-                                                    <div>
-                                                        <p className="text-sm text-white/60">Age</p>
-                                                        <div className="text-lg font-bold text-green-400">
-                                                            {Math.floor((Date.now() - entanglement.createdAt) / (1000 * 60))}m
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex justify-end gap-2">
-                                                    <button 
-                                                        onClick={() => strengthenEntanglement(entanglement.id)}
-                                                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
-                                                    >
-                                                        ⚡ Strengthen (25 QUANTUM)
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => breakEntanglement(entanglement.id)}
-                                                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
-                                                    >
-                                                        💔 Break
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </section>
-                        )}
-
-                        {activeTab === 'mynfts' && (
-                            <section className="bg-[var(--pane)] text-[var(--mustard)] rounded-2xl p-6 shadow-xl space-y-6 fade-in">
+                      {activeTab === 'monitor' && (
+                        <section className="bg-gradient-to-br from-[var(--pane)] to-[var(--ink)] p-6 rounded-2xl shadow-xl border border-gray-800 custom-scrollbar max-h-[500px] overflow-y-auto fade-in">
+                          <h3 className="text-lg font-semibold text-[var(--mustard)] mb-4">Active Entanglements</h3>
+                          {entanglementState.entanglements.length === 0 ? (
+                            <p className="text-gray-400">No entanglements yet.</p>
+                          ) : (
+                            entanglementState.entanglements.map((e) => (
+                              <div key={e.id} className="bg-[var(--ink)] p-4 rounded-xl mb-3">
+                                <div className="flex justify-between mb-2">
+                                  <span className="font-medium">{e.id}</span>
+                                  <span className="text-sm text-gray-400">{new Date(e.createdAt).toLocaleString()}</span>
+                                </div>
                                 <div className="flex justify-between items-center">
-                                    <h2 className="text-xl font-semibold">My NFTs</h2>
-                                    <button 
-                                        onClick={fetchUserNFTs}
-                                        className="bg-[var(--mustard)] text-[var(--ink)] hover:opacity-80 px-4 py-2 rounded-lg font-semibold text-sm"
-                                    >
-                                        🔄 Refresh
-                                    </button>
+                                  <span>Strength:</span>
+                                  <span className="font-bold text-[var(--mustard)]">{e.entanglementStrength}%</span>
                                 </div>
-                                
-                                {!isConnected ? (
-                                    <div className="text-center py-8">
-                                        <p className="text-white/60">Connect wallet to view your NFTs</p>
-                                    </div>
-                                ) : userNFTs.length === 0 ? (
-                                    <div className="text-center py-8">
-                                        <div className="text-6xl mb-4">🎨</div>
-                                        <h4 className="text-lg font-semibold mb-2 text-white">No NFTs Found</h4>
-                                        <p className="text-white/60">
-                                            You don't have any NFTs in your wallet yet
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                        {userNFTs.map((nft, idx) => (
-                                            <div 
-                                                key={idx}
-                                                className="bg-[var(--ink)] rounded-xl p-4 border border-[color:rgba(244,211,94,0.2)]"
-                                            >
-                                                <img src={imageUrl()} alt={nft.name} className="w-full h-32 object-cover rounded-lg mb-3" />
-                                                <h5 className="font-semibold text-white truncate">{nft.name}</h5>
-                                                <p className="text-xs text-white/60 mb-1">Token: {nft.tokenId}</p>
-                                                <p className="text-xs text-white/60 mb-1">Serial: #{nft.serial}</p>
-                                                <p className="text-xs text-[var(--mustard)]">{nft.realityType}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </section>
-                        )}
+                              </div>
+                            ))
+                          )}
+                        </section>
+                      )}
 
-                        {activeTab === 'theory' && (
-                            <section className="bg-[var(--pane)] text-[var(--mustard)] rounded-2xl p-6 shadow-xl space-y-8 fade-in">
-                                <h2 className="text-xl font-semibold">Quantum Entanglement Theory</h2>
+                      {activeTab === 'mynfts' && (
+                        <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 fade-in">
+                          {userNFTs.length === 0 ? (
+                            <p className="text-gray-400">No NFTs found.</p>
+                          ) : (
+                            userNFTs.map((nft) => (
+                              <div key={`${nft.tokenId}.${nft.serial}`} className="bg-gradient-to-br from-[var(--pane)] to-[var(--ink)] p-4 rounded-2xl shadow-xl border border-gray-800 hover:border-[var(--mustard)]/50 transition-all">
+                                <img src={nft.image} alt={nft.name} className="w-full h-40 object-cover rounded-lg mb-3" />
+                                <h4 className="font-medium text-white">{nft.name}</h4>
+                                <p className="text-xs text-gray-400">{nft.serial}</p>
+                              </div>
+                            ))
+                          )}
+                        </section>
+                      )}
 
-                                <div className="space-y-6">
-                                    <div className="p-6 bg-[var(--ink)] rounded-xl border border-[color:rgba(244,211,94,0.2)]">
-                                        <h4 className="font-semibold text-[var(--mustard)] mb-4">🌌 NFT-Based Quantum Entanglement</h4>
-                                        <p className="text-white/80 mb-4">
-                                            In QuantumVerse, quantum entanglement is applied directly to Hedera NFTs. 
-                                            When two NFTs are entangled, their quantum states become correlated - 
-                                            changes to one NFT's properties instantly affect its entangled partner.
-                                        </p>
-                                        <p className="text-white/80">
-                                            This creates truly connected digital assets that can exist across different 
-                                            games, metaverses, and reality types while maintaining synchronized states.
-                                        </p>
-                                    </div>
-
-                                    <div className="p-6 bg-[var(--ink)] rounded-xl border border-[color:rgba(244,211,94,0.2)]">
-                                        <h4 className="font-semibold text-[var(--mustard)] mb-4">⚡ How It Works on Hedera</h4>
-                                        <div className="space-y-4">
-                                            <div className="flex items-start gap-3">
-                                                <div className="w-6 h-6 bg-[var(--mustard)] text-[var(--ink)] rounded-full flex items-center justify-center font-bold text-sm">1</div>
-                                                <div>
-                                                    <h5 className="font-semibold text-white">NFT Selection</h5>
-                                                    <p className="text-white/70">Choose two Hedera NFTs from your wallet to entangle</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-start gap-3">
-                                                <div className="w-6 h-6 bg-[var(--mustard)] text-[var(--ink)] rounded-full flex items-center justify-center font-bold text-sm">2</div>
-                                                <div>
-                                                    <h5 className="font-semibold text-white">Quantum Correlation</h5>
-                                                    <p className="text-white/70">QUANTUM tokens are used to establish the entanglement link</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-start gap-3">
-                                                <div className="w-6 h-6 bg-[var(--mustard)] text-[var(--ink)] rounded-full flex items-center justify-center font-bold text-sm">3</div>
-                                                <div>
-                                                    <h5 className="font-semibold text-white">HCS Registry</h5>
-                                                    <p className="text-white/70">All entanglement operations are recorded on Hedera Consensus Service</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-start gap-3">
-                                                <div className="w-6 h-6 bg-[var(--mustard)] text-[var(--ink)] rounded-full flex items-center justify-center font-bold text-sm">4</div>
-                                                <div>
-                                                    <h5 className="font-semibold text-white">State Synchronization</h5>
-                                                    <p className="text-white/70">NFT properties synchronize automatically based on entanglement strength</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-6 bg-[var(--ink)] rounded-xl border border-[color:rgba(244,211,94,0.2)]">
-                                        <h4 className="font-semibold text-[var(--mustard)] mb-4">🎮 Use Cases</h4>
-                                        <ul className="text-white/80 space-y-2">
-                                            <li>• <strong>Cross-Game Items:</strong> Use the same weapon in multiple games simultaneously</li>
-                                            <li>• <strong>Shared Progression:</strong> Character XP gained in one metaverse updates in all others</li>
-                                            <li>• <strong>Split Ownership:</strong> Two players can co-own and co-control a single asset</li>
-                                            <li>• <strong>Reality Bridging:</strong> Connect VR, AR, and physical NFTs together</li>
-                                            <li>• <strong>Derivative Assets:</strong> Create derivative NFTs that inherit parent properties</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </section>
-                        )}
+                      {activeTab === 'theory' && (
+                        <section className="bg-gradient-to-br from-[var(--pane)] to-[var(--ink)] p-6 rounded-2xl shadow-xl border border-gray-800 fade-in">
+                          <h3 className="text-lg font-semibold text-[var(--mustard)] mb-4">Quantum Entanglement Theory</h3>
+                          <p className="text-gray-300 leading-relaxed">
+                            Quantum entanglement is a physical phenomenon where pairs or groups of particles interact 
+                            such that the state of each particle cannot be described independently of the state of the others. 
+                            In our platform, this concept is applied to Hedera NFTs to create synchronized asset states 
+                            across different users and realities.
+                          </p>
+                          <ul className="list-disc list-inside text-gray-400 mt-4 space-y-2">
+                            <li>Non-local correlations between entangled NFTs</li>
+                            <li>Secure messaging via Hedera Topics</li>
+                            <li>Asset state synchronization algorithms</li>
+                            <li>Strength metrics based on metadata and reality types</li>
+                          </ul>
+                        </section>
+                      )}
                     </div>
 
-                    <footer className="text-center text-sm text-white/60 pt-8 fade-in">
-                        © 2025 QuantumVerse - NFT Quantum Entanglement powered by Hedera
+                    {/* Footer */}
+                    <footer className="text-center py-6 fade-in">
+                      <p className="text-gray-500 text-sm">
+                        © 2025 QuantumVerse – Powered by Hedera Blockchain
+                      </p>
                     </footer>
                 </main>
             </div>
@@ -1107,3 +905,4 @@ const createEntanglementTopic = async () => {
 }
 
 export default Entanglement
+
