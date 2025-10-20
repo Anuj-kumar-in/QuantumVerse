@@ -4,6 +4,7 @@ const Sidebar = ({ activePage, setActivePage }) => {
     const pages = [
         { id: 'home', label: 'Home', icon: '🏠' },
         { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+        {id:'aientities' , label:'AI Entities',icon:'🤖'},
         { id: 'marketplace', label: 'Physics NFT', icon: '🛒' },
         { id: 'carbon', label: 'Carbon Rewards', icon: '🌿' },
         { id: 'identity', label: 'Quantum Identity', icon: '🔐' },

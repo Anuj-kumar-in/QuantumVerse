@@ -9,12 +9,14 @@ import Carbon from './pages/Carbon'
 import Marketplace from './pages/Marketplace'
 import Identity from './pages/Identity'
 import Entanglement from './pages/Entanglement'
+import AIEntities from './pages/AIEntities'
 
 function AppContent() {
   const [activePage, setActivePage] = useState('home')
 
   const renderPage = () => {
     switch (activePage) {
+      case 'aientities':return <AIEntities/>
       case 'dashboard':   return <Dashboard />
       case 'home':        return <Home />
       case 'marketplace': return <Marketplace />
@@ -55,18 +57,13 @@ function AppContent() {
       `}</style>
 
       <div className="min-h-screen bg-[var(--ink)]">
-        {/* Navbar - Sticky at top */}
         <div className="sticky top-0 z-50 px-4 pt-4">
           <Navbar />
         </div>
 
-        {/* Main Content Area with Sidebar */}
         <div className="w-full px-4 py-6">
           <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
-            {/* Sidebar */}
             <Sidebar activePage={activePage} setActivePage={setActivePage} />
-            
-            {/* Main Content - Full width */}
             <main className="min-h-screen w-full">
               {renderPage()}
             </main>
