@@ -1,6 +1,6 @@
 import React from 'react'
 import { useWallet } from '../Context/WalletContext'
-import logo from '/image/logo.jpeg' 
+import logo from '/image/logo.png' 
 
 export default function Navbar() {
     const { isConnected, connectedAccount, connectWallet, disconnectWallet, connectionState } = useWallet()
