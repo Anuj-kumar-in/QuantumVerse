@@ -64,7 +64,6 @@ export const Carbon = () => {
           setVerificationHistory(JSON.parse(storedVerificationHistory))
         }
       } catch (error) {
-        console.error('Failed to load stored data:', error)
       }
     }
 
@@ -77,7 +76,6 @@ export const Carbon = () => {
       localStorage.setItem('metrics', JSON.stringify(metrics))
       localStorage.setItem('verificationHistory', JSON.stringify(verificationHistory))
     } catch (error) {
-      console.error('Failed to save data:', error)
     }
   }, [submittedActions, metrics, verificationHistory])
 
@@ -89,7 +87,6 @@ export const Carbon = () => {
         await connectWallet();
       }
     } catch (error) {
-      console.error("Wallet action failed:", error);
       alert("Failed to connect wallet. Please try again.");
     }
   };
@@ -316,8 +313,9 @@ export const Carbon = () => {
 
       let aiAnalysis
       try {
-        const jsonMatch = responseText.match(/``````/) || 
-                        responseText.match(/``````/)
+        
+        const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/) || 
+                         responseText.match(/```\s*([\s\S]*?)\s*```/)
         
         const jsonText = jsonMatch ? jsonMatch[1] : responseText
         aiAnalysis = JSON.parse(jsonText.trim())
@@ -325,6 +323,7 @@ export const Carbon = () => {
         console.error('Failed to parse AI response:', parseError)
         throw new Error(`AI returned invalid JSON: ${parseError.message}`)
       }
+
 
       const verificationResult = {
         ...aiAnalysis,
@@ -340,7 +339,6 @@ export const Carbon = () => {
       return verificationResult
 
     } catch (error) {
-      console.error('❌ AI Verification failed:', error)
       const errorResult = {
         isValid: false,
         confidence: 0,
@@ -452,9 +450,7 @@ export const Carbon = () => {
       const frozenTx = await transaction.freezeWithSigner(signer)
       const response = await frozenTx.executeWithSigner(signer)
       const receipt = await response.getReceiptWithSigner(signer)
-      
-      console.log('✅ Hedera transaction successful:', receipt.transactionId?.toString())
-      
+       
       return {
         success: true,
         transactionId: receipt.transactionId?.toString(),
