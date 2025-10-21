@@ -10,6 +10,7 @@ import Marketplace from './pages/Marketplace'
 import Identity from './pages/Identity'
 import Entanglement from './pages/Entanglement'
 import AIEntities from './pages/AIEntities'
+import Portal from './pages/Portal'
 
 function AppContent() {
   const [activePage, setActivePage] = useState('home')
@@ -23,6 +24,7 @@ function AppContent() {
       case 'carbon':      return <Carbon />
       case 'identity':    return <Identity />
       case 'entanglement':return <Entanglement />
+      case 'portal':      return <Portal />
       default:            return <Home />
     }
   }

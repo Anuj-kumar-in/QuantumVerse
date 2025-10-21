@@ -8,12 +8,13 @@ const Sidebar = ({ activePage, setActivePage }) => {
         { id: 'marketplace', label: 'Physics NFT', icon: '🛒' },
         { id: 'carbon', label: 'Carbon Rewards', icon: '🌿' },
         { id: 'identity', label: 'Quantum Identity', icon: '🔐' },
-        { id: 'entanglement', label: 'Entanglement', icon: '🌌' }
+        { id: 'entanglement', label: 'Entanglement', icon: '🌌' },
+        { id: 'portal', label: 'Reality Portal', icon: '🌐' }
     ]
 
     return (
         <aside className="hidden lg:block">
-        <div className="sticky top-24 w-full bg-gradient-to-br from-[var(--pane)] to-[var(--ink)] text-white rounded-3xl p-6 shadow-2xl border border-gray-800">
+        <div className="sticky top-[13vh] w-full bg-gradient-to-br from-[var(--pane)] to-[var(--ink)] text-white rounded-3xl p-6 shadow-2xl border border-gray-800">
             {/* Sidebar Header */}
             <div className="mb-6 pb-4 border-b border-gray-800">
             <h2 className="text-xl font-bold text-[var(--mustard)] text-center">Navigation</h2>

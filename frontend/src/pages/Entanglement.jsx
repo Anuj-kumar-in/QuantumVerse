@@ -789,7 +789,7 @@ const Entanglement = () => {
                                     hover:border-[var(--mustard)]/50
                                   `}
                                 >
-                                  <img src={nft.image} alt={nft.name} className="w-12 h-12 rounded-lg object-cover" />
+                                  <img src={imageUrl()} alt={nft.name} className="w-12 h-12 rounded-lg object-cover" />
                                   <div>
                                     <p className="font-medium">{nft.name}</p>
                                     <p className="text-xs text-gray-400">{nft.realityType}</p>
@@ -864,7 +864,7 @@ const Entanglement = () => {
                           ) : (
                             userNFTs.map((nft) => (
                               <div key={`${nft.tokenId}.${nft.serial}`} className="bg-gradient-to-br from-[var(--pane)] to-[var(--ink)] p-4 rounded-2xl shadow-xl border border-gray-800 hover:border-[var(--mustard)]/50 transition-all">
-                                <img src={nft.image} alt={nft.name} className="w-full h-40 object-cover rounded-lg mb-3" />
+                                <img src={imageUrl()} alt={nft.name} className="w-full h-40 object-cover rounded-lg mb-3" />
                                 <h4 className="font-medium text-white">{nft.name}</h4>
                                 <p className="text-xs text-gray-400">{nft.serial}</p>
                               </div>
