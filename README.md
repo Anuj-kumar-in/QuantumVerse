@@ -2,6 +2,10 @@
 
 A decentralized marketplace for trading physics properties, quantum assets, and carbon credits as NFTs on the Hedera Hashgraph network. Experience the future of digital ownership where scientific concepts meet blockchain technology.
 
+## 🚀 Demo
+
+Check out the live demo: [https://quantum-verse.vercel.app/](https://quantum-verse.vercel.app/)
+
 ## 🌟 Features
 
 - **Physics NFT Marketplace**: Trade NFTs representing fundamental physics forces (Gravity, Time, Weather, Matter, Energy, Space, Quantum Field)

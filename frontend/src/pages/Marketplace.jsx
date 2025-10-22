@@ -52,12 +52,31 @@ const PHYSICS_TYPE_NAMES = {
 }
 
 const RARITY_NAMES = {
-  [Rarity.COMMON]: 'Common',
-  [Rarity.UNCOMMON]: 'Uncommon',
-  [Rarity.RARE]: 'Rare',
-  [Rarity.EPIC]: 'Epic',
-  [Rarity.LEGENDARY]: 'Legendary',
-  [Rarity.MYTHIC]: 'Mythic'
+   [Rarity.COMMON]: 'Common',
+   [Rarity.UNCOMMON]: 'Uncommon',
+   [Rarity.RARE]: 'Rare',
+   [Rarity.EPIC]: 'Epic',
+   [Rarity.LEGENDARY]: 'Legendary',
+   [Rarity.MYTHIC]: 'Mythic'
+}
+
+const RARITY_MULTIPLIERS = {
+   [Rarity.COMMON]: 1,
+   [Rarity.UNCOMMON]: 1.5,
+   [Rarity.RARE]: 2,
+   [Rarity.EPIC]: 2.5,
+   [Rarity.LEGENDARY]: 3,
+   [Rarity.MYTHIC]: 3
+}
+
+const PHYSICS_TYPE_ADDITIONS = {
+   [PhysicsType.GRAVITY]: 5,
+   [PhysicsType.TIME]: 10,
+   [PhysicsType.WEATHER]: 15,
+   [PhysicsType.MATTER]: 20,
+   [PhysicsType.ENERGY]: 25,
+   [PhysicsType.SPACE]: 30,
+   [PhysicsType.QUANTUM_FIELD]: 35
 }
 
 const RARITY_COLORS = {
@@ -426,7 +445,14 @@ const MintNFT = ({ connectedAccount, isConnected, onMinted }) => {
     const [isMinting, setIsMinting] = useState(false)
     const [mintStatus, setMintStatus] = useState('')
 
-    const costHBAR = 10
+    const calculateCost = (rarity, physicsType) => {
+        const baseCost = 10
+        const rarityMultiplier = RARITY_MULTIPLIERS[rarity] || 1
+        const physicsAddition = PHYSICS_TYPE_ADDITIONS[physicsType] || 0
+        return baseCost * rarityMultiplier + physicsAddition
+    }
+
+    const costHBAR = calculateCost(rarity, physicsType)
 
     const createMetadata = async (physicsType, rarity, customProperties) => {
         setMintStatus('Generating properties...')
@@ -584,7 +610,7 @@ const MintNFT = ({ connectedAccount, isConnected, onMinted }) => {
         <div className="bg-gradient-to-br from-[var(--ink)] to-gray-900 rounded-2xl p-6 border border-gray-800 space-y-6">
             <h3 className="text-xl font-bold text-[var(--mustard)] flex items-center gap-2">
                 <span className="text-2xl">⚡</span>
-                Mint Physics NFT ({costHBAR} HBAR)
+                Mint Physics NFT (Base Fee 10 Hbar)
             </h3>
             
             {mintStatus && (
@@ -607,28 +633,33 @@ const MintNFT = ({ connectedAccount, isConnected, onMinted }) => {
                 
                 <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">Physics Type</label>
-                    <select 
-                        value={physicsType} 
-                        onChange={e => setPhysicsType(parseInt(e.target.value))} 
+                    <select
+                        value={physicsType}
+                        onChange={e => setPhysicsType(parseInt(e.target.value))}
                         className="w-full px-4 py-2 bg-[var(--ink)] border border-[color:rgba(238,195,41,0.3)] rounded-lg text-[var(--mustard)] focus:border-[var(--mustard)] focus:outline-none"
                         disabled={isMinting}
                     >
-                        {Object.entries(PHYSICS_TYPE_NAMES).map(([key, name]) => (
-                            <option key={key} value={key}>{name}</option>
-                        ))}
+                        {Object.entries(PHYSICS_TYPE_NAMES).map(([key, name]) => {
+                            const addition = PHYSICS_TYPE_ADDITIONS[key] || 0
+                            return (
+                                <option key={key} value={key}>
+                                    {name}{addition > 0 ? ` (+${addition})` : ''}
+                                </option>
+                            )
+                        })}
                     </select>
                 </div>
                 
                 <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">Rarity</label>
-                    <select 
-                        value={rarity} 
-                        onChange={e => setRarity(parseInt(e.target.value))} 
+                    <select
+                        value={rarity}
+                        onChange={e => setRarity(parseInt(e.target.value))}
                         className="w-full px-4 py-2 bg-[var(--ink)] border border-[color:rgba(238,195,41,0.3)] rounded-lg text-[var(--mustard)] focus:border-[var(--mustard)] focus:outline-none"
                         disabled={isMinting}
                     >
                         {Object.entries(RARITY_NAMES).map(([key, name]) => (
-                            <option key={key} value={key}>{name}</option>
+                            <option key={key} value={key}>{name} (x{RARITY_MULTIPLIERS[key]})</option>
                         ))}
                     </select>
                 </div>
@@ -667,7 +698,7 @@ const MintNFT = ({ connectedAccount, isConnected, onMinted }) => {
 
             <div className="flex items-center justify-between pt-4 border-t border-gray-700">
                 <div className="text-gray-400">
-                    Cost: <span className="text-[var(--mustard)] font-bold text-lg">{costHBAR} HBAR</span>
+                    Cost: <span className="text-[var(--mustard)] font-bold text-lg">{costHBAR.toFixed(2)} HBAR</span>
                 </div>
                 <button 
                     onClick={handleMint} 
