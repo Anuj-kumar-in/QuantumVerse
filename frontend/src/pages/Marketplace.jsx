@@ -894,7 +894,54 @@ export const Marketplace = () => {
 
             <div className="min-h-screen bg-gradient-to-br from-[var(--ink)] via-gray-900 to-[var(--ink)] text-white">
                 <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 space-y-6">
-                    
+
+                    {/* Hero Section */}
+                    <section className="relative bg-gradient-to-br from-[var(--pane)] via-[var(--ink)] to-[var(--pane)] rounded-3xl p-8 md:p-10 shadow-2xl border border-gray-800 overflow-hidden fade-in">
+                        <div className="absolute top-0 right-0 w-96 h-96 bg-[var(--mustard)] opacity-5 rounded-full blur-3xl"></div>
+                        <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500 opacity-5 rounded-full blur-3xl"></div>
+
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-12 h-12 bg-gradient-to-br from-[var(--mustard)] to-yellow-600 rounded-2xl flex items-center justify-center text-2xl shadow-lg">
+                                    ⚛️
+                                </div>
+                                <div>
+                                    <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-[var(--mustard)] to-yellow-600 bg-clip-text text-transparent">
+                                        Physics NFT Marketplace
+                                    </h1>
+                                    <p className="text-gray-400 text-sm mt-1">
+                                        Powered by Hedera Blockchain & Quantum Properties
+                                    </p>
+                                </div>
+                            </div>
+
+                            <p className="text-gray-300 text-lg mb-6 max-w-3xl">
+                                Trade physics properties and quantum assets. Discover unique NFTs with real quantum mechanics and physics attributes.
+                            </p>
+
+                            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                                <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 border border-green-500/30 rounded-full">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                    <span className="text-green-400 text-sm font-medium">
+                                        {isConnected ? `Connected: ${connectedAccount.slice(0, 8)}...${connectedAccount.slice(-4)}` : 'Wallet Disconnected'}
+                                    </span>
+                                </div>
+
+                                <button
+                                    onClick={() => isConnected ? null : connectWallet()}
+                                    disabled={isConnected}
+                                    className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${
+                                        isConnected
+                                            ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-not-allowed'
+                                            : 'bg-gradient-to-r from-[var(--mustard)] to-yellow-600 text-[var(--ink)] hover:opacity-90'
+                                    }`}
+                                >
+                                    {isConnected ? 'Wallet Connected' : '🔷 Connect Hedera Wallet'}
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
                     {/* Navigation Tabs */}
                     <nav className="bg-gradient-to-r from-[var(--pane)] to-[var(--ink)] rounded-2xl p-2 shadow-2xl border border-gray-800 fade-in">
                         <ul className="flex flex-wrap justify-center gap-2">
