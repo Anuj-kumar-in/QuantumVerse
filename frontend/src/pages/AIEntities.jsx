@@ -849,15 +849,12 @@ export const AIEntities = () => {
                 </div>
                 <div>
                   <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-[var(--mustard)] to-yellow-600 bg-clip-text text-transparent">
-                    AI Entities with Chat - FIXED
+                    AI Entities
                   </h1>
-                  <p className="text-gray-400 text-sm mt-1">Powered by Hedera AI Agent Kit • Now with 5 Mock Entities</p>
+                  <p className="text-gray-400 text-sm mt-1">Powered by Hedera AI Agent Kit</p>
                 </div>
               </div>
               
-              <p className="text-gray-300 text-lg mb-6 max-w-3xl">
-                ✅ FIXED: Groq 413 error resolved! Using smaller models (llama3-8b-8192), reduced tool count, and shorter prompts.
-              </p>
               
               <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
                 <div className="flex items-center gap-3 flex-wrap">
