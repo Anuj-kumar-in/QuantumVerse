@@ -6,7 +6,15 @@ A decentralized marketplace for trading physics properties, quantum assets, and 
 
 Check out the live demo: [https://quantum-verse.vercel.app/](https://quantum-verse.vercel.app/)
 
-## 🌟 Features
+## 📊 Pitch Deck
+
+View our pitch deck: [https://pitch.com/v/quantumverse-urpdkj](https://pitch.com/v/quantumverse-urpdkj)
+
+## 🏆 Certifications
+
+Hashgraph Developer Certification: [https://certs.hashgraphdev.com/595b805d-a2f6-478d-9f76-edcdc4738bc3.pdf](https://certs.hashgraphdev.com/595b805d-a2f6-478d-9f76-edcdc4738bc3.pdf)
+
+##  Features
 
 - **Physics NFT Marketplace**: Trade NFTs representing fundamental physics forces (Gravity, Time, Weather, Matter, Energy, Space, Quantum Field)
 - **Quantum Assets**: Unique digital assets with quantum properties and rarity levels
